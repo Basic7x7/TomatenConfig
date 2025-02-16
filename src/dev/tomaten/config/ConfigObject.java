@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class ConfigObject extends ConfigElement {
+class ConfigObject extends ConfigElement {
 	private final Map<String, ConfigElement> map;
 	private final Set<String> keys;
 	

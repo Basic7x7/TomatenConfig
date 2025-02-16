@@ -1,6 +1,6 @@
 package dev.tomaten.config;
 
-public class ConfigDouble extends ConfigElement {
+class ConfigDouble extends ConfigElement {
 	private final double value;
 	
 	public ConfigDouble(String fullName, double value) {

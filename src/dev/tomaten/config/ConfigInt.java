@@ -1,6 +1,6 @@
 package dev.tomaten.config;
 
-public class ConfigInt extends ConfigElement {
+class ConfigInt extends ConfigElement {
 	private final long value;
 	
 	public ConfigInt(String fullName, long value) {

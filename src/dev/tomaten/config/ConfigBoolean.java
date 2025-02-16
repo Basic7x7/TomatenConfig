@@ -1,6 +1,6 @@
 package dev.tomaten.config;
 
-public class ConfigBoolean extends ConfigElement {
+class ConfigBoolean extends ConfigElement {
 	private final boolean value;
 	
 	public ConfigBoolean(String fullName, boolean value) {

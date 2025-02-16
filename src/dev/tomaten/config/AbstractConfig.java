@@ -6,12 +6,12 @@ import java.util.function.Supplier;
 
 import dev.tomaten.config.ConfigElement.Type;
 
-public abstract class AbstractTConfig<Self extends AbstractTConfig<Self>> {
+public abstract class AbstractConfig<Self extends AbstractConfig<Self>> {
 	private Supplier<Self> factory;
 	private ConfigElement data;
 	
 	
-	protected AbstractTConfig() {
+	protected AbstractConfig() {
 	}
 	
 	protected void init(Supplier<Self> factory, ConfigElement data) {
@@ -39,7 +39,7 @@ public abstract class AbstractTConfig<Self extends AbstractTConfig<Self>> {
 			int partEnd = end >= 0 ? end : n;
 			String namePart = name.substring(start, partEnd);
 			
-			current = current.get(namePart);
+			current = current.getOrNull(namePart);
 			if (current == null) {
 				if (allowNull) {
 					return null;
@@ -163,7 +163,7 @@ public abstract class AbstractTConfig<Self extends AbstractTConfig<Self>> {
 		return this.navigate(name, false).getString();
 	}
 	
-	public String getString(String name, String defaultValue) {
+	public String getStringOrDefault(String name, String defaultValue) {
 		ConfigElement element = this.navigate(name, true);
 		return element != null ? element.getStringOrDefault(defaultValue) : defaultValue;
 	}
@@ -172,7 +172,7 @@ public abstract class AbstractTConfig<Self extends AbstractTConfig<Self>> {
 		return this.data.get(index).getString();
 	}
 	
-	public String getString(int index, String defaultValue) {
+	public String getStringOrDefault(int index, String defaultValue) {
 		ConfigElement element = this.data.getOrNull(index);
 		return element != null ? element.getStringOrDefault(defaultValue) : defaultValue;
 	}

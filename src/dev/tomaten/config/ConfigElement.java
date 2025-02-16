@@ -6,7 +6,7 @@ import java.util.List;
 public abstract class ConfigElement {
 	private final String fullName;
 	
-	public ConfigElement(String fullName) {
+	protected ConfigElement(String fullName) {
 		this.fullName = fullName;
 	}
 	

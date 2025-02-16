@@ -3,7 +3,7 @@ package dev.tomaten.config;
 import java.util.Collections;
 import java.util.List;
 
-public class ConfigList extends ConfigElement {
+class ConfigList extends ConfigElement {
 	private final List<ConfigElement> elements;
 	private final List<ConfigElement> unmodElements;
 	

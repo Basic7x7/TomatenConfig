@@ -2,7 +2,7 @@ package dev.tomaten.config;
 
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
-public class ConfigString extends ConfigElement {
+class ConfigString extends ConfigElement {
 	private final String value;
 	
 	public ConfigString(String fullName, String value) {
