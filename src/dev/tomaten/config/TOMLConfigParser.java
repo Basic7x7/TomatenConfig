@@ -5,7 +5,6 @@ import static de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuf
 
 import java.io.Reader;
 import java.util.ArrayDeque;
-import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import de.tomatengames.lib.compiler.CompilerException;
