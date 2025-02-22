@@ -5,6 +5,8 @@ import static de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuf
 
 import java.io.Reader;
 import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 import de.tomatengames.lib.compiler.CompilerException;
 import de.tomatengames.lib.compiler.LexicalSymbolSet;
@@ -26,6 +28,9 @@ class TOMLConfigParser {
 			context.keysBuf.clear();
 			context.keysBuf.add(new StringBuilder());
 			context.keyMustEnd = false;
+		}).withIntermediateEvent(1, (t, context) -> {
+			context.key = context.keyBufferString();
+			context.value = null;
 		}); // TODO post event
 		
 		
@@ -85,11 +90,49 @@ class TOMLConfigParser {
 		grammar.add("ML_LITERAL_STRING -> '''''");
 		grammar.add("ML_LITERAL_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
 		grammar.add("ML_LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
+		
+		
+		grammar.add("VALUE -> space THIS");
+		grammar.add("VALUE -> true").withEvent((t, context) -> {
+			context.value = new ConfigBoolean(context.getFullKey(), true);
+		});
+		grammar.add("VALUE -> false").withEvent((t, context) -> {
+			context.value = new ConfigBoolean(context.getFullKey(), false);
+		});
+		// TODO Numbers, ...
+		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
+			context.value = new ConfigString(context.key, context.flushBuffer());
+		});
+		grammar.add("VALUE ->").withEvent((t, context) -> {
+			if (context.value == null) {
+				throw new CompilerException("No value specified", context.getLine());
+			}
+		});
 	}
 	
 	private static class Context extends PrefixLexerContextWithBuffer {
 		private final ArrayDeque<StringBuilder> keysBuf = new ArrayDeque<>();
 		private boolean keyMustEnd = false;
+		
+		private String absKey = "";
+		private ConfigObject table = null;
+		
+		private String key = null;
+		private ConfigElement value = null;
+		
+		
+		public String keyBufferString() {
+			return this.keysBuf.stream().map(buf -> buf.toString()).collect(Collectors.joining("."));
+		}
+		
+		public String getFullKey() {
+			return (this.absKey.isEmpty() ? "" : this.absKey + (this.key != null ? "." : "")) + (this.key != null ? this.key : "");
+		}
+		
+		@Override
+		public boolean supportsLineCounter() {
+			return true;
+		}
 	}
 	
 	
