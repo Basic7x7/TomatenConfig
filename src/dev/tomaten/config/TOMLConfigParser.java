@@ -3,9 +3,9 @@ package dev.tomaten.config;
 import static de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuffer.bufferEvent;
 import static de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuffer.clearBufferEvent;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayDeque;
-import java.util.stream.Collectors;
 
 import de.tomatengames.lib.compiler.CompilerException;
 import de.tomatengames.lib.compiler.LexicalSymbolSet;
@@ -22,48 +22,97 @@ class TOMLConfigParser {
 	
 	private static final PrefixLexerGrammar<Context> grammar = new PrefixLexerGrammar<>(symbolSet, "LINESTART", PrefixLexerOption.IGNORE_UTF8_BOM);
 	static {
+		grammar.enableLookAhead("COMMENT");
+		grammar.add("COMMENT -> '#' INNER_COMMENT");
+		grammar.add("COMMENT -> :NEWLINE: LINESTART");
+		grammar.add("INNER_COMMENT -> any THIS");
+		grammar.add("INNER_COMMENT -> :NEWLINE: LINESTART");
+		
+		
 		grammar.add("LINESTART -> space THIS");
-		grammar.add("LINESTART -> KEY '=' VALUE LINEEND").withEvent((t, context) -> {
-			context.keysBuf.clear();
-			context.keysBuf.add(new StringBuilder());
-			context.keyMustEnd = false;
-		}).withIntermediateEvent(1, (t, context) -> {
-			context.key = context.keyBufferString();
+		grammar.add("LINESTART -> COMMENT");
+		grammar.add("LINESTART -> '[[' KEY ']]' LINEEND").withPostEvent((t, context) -> {
+			context.key = context.keyBuffer();
+			ConfigListBuilder list = context.rootTable.createOrGetList(context.key);
+			context.table = list.addObject();
+		});
+		grammar.add("LINESTART -> '[' KEY ']' LINEEND").withPostEvent((t, context) -> {
+			context.key = context.keyBuffer();
+			context.table = context.rootTable.createObject(context.key);
+		});
+		grammar.add("LINESTART -> KEY '=' VALUE LINEEND").withIntermediateEvent(1, (t, context) -> {
+			context.key = context.keyBuffer();
 			context.value = null;
-		}); // TODO post event
+		});
+		grammar.add("LINESTART ->"); // Final state
+		
+		
+		grammar.add("LINEEND -> space THIS");
+		grammar.add("LINEEND -> COMMENT");
+		grammar.add("LINEEND ->"); // Final state
 		
 		
 		
 		// --- Keys ---
 		
 		grammar.enableLookAhead("KEY");
-		grammar.add("KEY -> space THIS").withEvent((t, context) -> {
+		grammar.add("KEY -> KEY_ KEY_LIST").withEvent((t, context) -> {
+			context.keysBuf.clear();
+			context.keysBuf.add(new StringBuilder());
+			context.keyMustEnd = false;
+		});
+		
+		grammar.add("KEY_LIST -> KEY_ THIS");
+		grammar.add("KEY_LIST ->");
+		
+		grammar.enableLookAhead("KEY_");
+		grammar.add("KEY_ -> space").withEvent((t, context) -> {
 			if (context.keysBuf.peekLast().length() > 0) {
 				context.keyMustEnd = true;
 			}
 		});
-		grammar.add("KEY -> key THIS").withEvent((t, context) -> {
+		grammar.add("KEY_ -> key").withEvent((t, context) -> {
 			if (context.keyMustEnd) {
-				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended", context.getLine());
+				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended");
 			}
 			context.keysBuf.peekLast().append(t[0]);
 		});
-		grammar.add("KEY -> '.' THIS").withEvent((t, context) -> {
+		grammar.add("KEY_ -> '.'").withEvent((t, context) -> {
 			context.keysBuf.addLast(new StringBuilder());
 			context.keyMustEnd = false;
 		});
-		grammar.add("KEY -> STRING KEY_END").withPostEvent((t, context) -> {
+		grammar.add("KEY_ -> STRING :VOID:").withPostEvent((t, context) -> {
 			if (context.keyMustEnd) {
-				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended", context.getLine());
+				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended");
 			}
 			context.keysBuf.peekLast().append(context.flushBuffer());
 		});
-		grammar.add("KEY ->").withEvent((t, context) -> context.keyMustEnd = false);
 		
 		
 		// --- Strings ---
 		
 		grammar.enableLookAhead("STRING");
+		
+		grammar.add("STRING -> '\"\"\"' ML_BASIC_STRING_START").withEvent(clearBufferEvent()); 
+		grammar.add("ML_BASIC_STRING_START -> :NEWLINE: ML_BASIC_STRING"); // Ignore first direct line break
+		grammar.add("ML_BASIC_STRING_START -> ML_BASIC_STRING");
+		
+		grammar.add("ML_BASIC_STRING -> '\"\"\"'");
+		// Note: The output will contain the system specific line separator. This doesn't exactly comply with the TOML spec.
+		grammar.add("ML_BASIC_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
+		// \<newline> skips the leading spaces in the next line.
+		grammar.add("ML_BASIC_STRING -> '\\' :NEWLINE: :SPACE: THIS").withEvent(bufferEvent(System.lineSeparator()));
+		grammar.add("ML_BASIC_STRING -> '\\' :ESCAPE: THIS");
+		grammar.add("ML_BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
+		
+		grammar.add("STRING -> ''''' :NEWLINE: ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
+		grammar.add("ML_LITERAL_STRING_START -> :NEWLINE: ML_LITERAL_STRING"); // Ignore first direct line break
+		grammar.add("ML_LITERAL_STRING_START -> ML_LITERAL_STRING");
+		
+		grammar.add("ML_LITERAL_STRING -> '''''");
+		grammar.add("ML_LITERAL_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
+		grammar.add("ML_LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
+		
 		grammar.add("STRING -> '\"' BASIC_STRING").withEvent(clearBufferEvent());
 		grammar.add("BASIC_STRING -> '\"'");
 		// Note: The escape sequences :ESCAPE: provides, don't exactly match these defined by the TOML spec.
@@ -74,38 +123,19 @@ class TOMLConfigParser {
 		grammar.add("LITERAL_STRING -> '''");
 		grammar.add("LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> '\"\"\"' :NEWLINE: ML_BASIC_STRING").withEvent(clearBufferEvent()); // Ignore first direct line break
-		grammar.add("STRING -> '\"\"\"' ML_BASIC_STRING").withEvent(clearBufferEvent());
-		grammar.add("ML_BASIC_STRING -> '\"\"\"'");
-		// Note: The output will contain the system specific line separator. This doesn't exactly comply with the TOML spec.
-		grammar.add("ML_BASIC_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
-		// \<newline> skips the leading spaces in the next line.
-		grammar.add("ML_BASIC_STRING -> '\\' :NEWLINE: :SPACE: THIS").withEvent(bufferEvent(System.lineSeparator()));
-		grammar.add("ML_BASIC_STRING -> '\\' :ESCAPE: THIS");
-		grammar.add("ML_BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> ''''' :NEWLINE: ML_LITERAL_STRING").withEvent(clearBufferEvent()); // Ignore first direct line break
-		grammar.add("STRING -> ''''' ML_LITERAL_STRING").withEvent(clearBufferEvent());
-		grammar.add("ML_LITERAL_STRING -> '''''");
-		grammar.add("ML_LITERAL_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
-		grammar.add("ML_LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
 		
 		
 		grammar.add("VALUE -> space THIS");
-		grammar.add("VALUE -> true").withEvent((t, context) -> {
-			context.value = new ConfigBoolean(context.getFullKey(), true);
+		grammar.add("VALUE -> 'true'").withEvent((t, context) -> {
+			context.value = context.insertBooleanValue(true);
 		});
-		grammar.add("VALUE -> false").withEvent((t, context) -> {
-			context.value = new ConfigBoolean(context.getFullKey(), false);
+		grammar.add("VALUE -> 'false'").withEvent((t, context) -> {
+			context.value = context.insertBooleanValue(false);
 		});
 		// TODO Numbers, ...
 		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
-			context.value = new ConfigString(context.key, context.flushBuffer());
-		});
-		grammar.add("VALUE ->").withEvent((t, context) -> {
-			if (context.value == null) {
-				throw new CompilerException("No value specified", context.getLine());
-			}
+			context.value = context.insertStringValue(context.flushBuffer());
 		});
 	}
 	
@@ -113,29 +143,70 @@ class TOMLConfigParser {
 		private final ArrayDeque<StringBuilder> keysBuf = new ArrayDeque<>();
 		private boolean keyMustEnd = false;
 		
-		private String absKey = "";
-		private ConfigObject table = null;
+		private final ConfigObjectBuilder rootTable = new ConfigObjectBuilder(null, "");
 		
-		private String key = null;
-		private ConfigElement value = null;
+		private ConfigObjectBuilder table = this.rootTable;
+		private ConfigListBuilder list = null;
+		
+		private String[] key = null;
+		private ConfigElementBuilder value = null;
 		
 		
-		public String keyBufferString() {
-			return this.keysBuf.stream().map(buf -> buf.toString()).collect(Collectors.joining("."));
-		}
-		
-		public String getFullKey() {
-			return (this.absKey.isEmpty() ? "" : this.absKey + (this.key != null ? "." : "")) + (this.key != null ? this.key : "");
+		public String[] keyBuffer() {
+			return this.keysBuf.stream().map(buf -> buf.toString()).toArray(String[]::new);
 		}
 		
 		@Override
 		public boolean supportsLineCounter() {
 			return true;
 		}
+		
+		
+		public ConfigElementBuilder insertStringValue(String value) throws CompilerException {
+			if (this.list != null) {
+				return this.list.addString(value);
+			}
+			if (this.key == null) {
+				throw new CompilerException("No key found to insert the string value");
+			}
+			return this.table.setString(this.key, value);
+		}
+		
+		public ConfigElementBuilder insertBooleanValue(boolean value) throws CompilerException {
+			if (this.list != null) {
+				return this.list.addBoolean(value);
+			}
+			if (this.key == null) {
+				throw new CompilerException("No key found to insert the boolean value");
+			}
+			return this.table.setBoolean(this.key, value);
+		}
+		
+		public ConfigElementBuilder insertIntValue(long value) throws CompilerException {
+			if (this.list != null) {
+				return this.list.addInt(value);
+			}
+			if (this.key == null) {
+				throw new CompilerException("No key found to insert the int value");
+			}
+			return this.table.setInt(this.key, value);
+		}
+		
+		public ConfigElementBuilder insertDoubleValue(double value) throws CompilerException {
+			if (this.list != null) {
+				return this.list.addDouble(value);
+			}
+			if (this.key == null) {
+				throw new CompilerException("No key found to insert the double value");
+			}
+			return this.table.setDouble(this.key, value);
+		}
 	}
 	
 	
-	public static ConfigElement parse(Reader r) throws ConfigError {
-		return null; // TODO
+	public static ConfigElement parse(Reader reader) throws CompilerException, IOException {
+		Context context = new Context();
+		grammar.run(reader, context);
+		return context.rootTable.toElement();
 	}
 }

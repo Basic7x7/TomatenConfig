@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Supplier;
 
+import de.tomatengames.lib.compiler.CompilerException;
+
 public class TomatenConfig {
 	
 	public static String getVersion() {
@@ -28,6 +30,9 @@ public class TomatenConfig {
 		String filename = filenamePath.toString();
 		if (filename.endsWith(".json")) {
 			return ConfigType.JSON;
+		}
+		if (filename.endsWith(".toml")) {
+			return ConfigType.TOML;
 		}
 		
 		return ConfigType.AUTO_DETECT; // No matching file extension found
@@ -57,6 +62,13 @@ public class TomatenConfig {
 		switch (type) {
 		case JSON:
 			rootElement = JSONConfigParser.parse(reader);
+			break;
+		case TOML:
+			try {
+				rootElement = TOMLConfigParser.parse(reader);
+			} catch (CompilerException | IOException e) {
+				throw new ConfigError(e);
+			}
 			break;
 		case AUTO_DETECT:
 			throw new ConfigError("Cannot detect config file type");

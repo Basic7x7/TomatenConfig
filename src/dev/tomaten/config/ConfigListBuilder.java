@@ -35,24 +35,32 @@ class ConfigListBuilder extends ConfigElementBuilder {
 	}
 	
 	
-	public void addString(String value) throws CompilerException {
+	public ConfigElementBuilder addString(String value) throws CompilerException {
 		requireNotClosed();
-		this.list.add(ConfigElementBuilder.ofString(this, String.valueOf(this.list.size()), value));
+		ConfigElementBuilder builder = ConfigElementBuilder.ofString(this, String.valueOf(this.list.size()), value);
+		this.list.add(builder);
+		return builder;
 	}
 	
-	public void addBoolean(boolean value) throws CompilerException {
+	public ConfigElementBuilder addBoolean(boolean value) throws CompilerException {
 		requireNotClosed();
-		this.list.add(ConfigElementBuilder.ofBoolean(this, String.valueOf(this.list.size()), value));
+		ConfigElementBuilder builder = ConfigElementBuilder.ofBoolean(this, String.valueOf(this.list.size()), value);
+		this.list.add(builder);
+		return builder;
 	}
 	
-	public void addInt(long value) throws CompilerException {
+	public ConfigElementBuilder addInt(long value) throws CompilerException {
 		requireNotClosed();
-		this.list.add(ConfigElementBuilder.ofInt(this, String.valueOf(this.list.size()), value));
+		ConfigElementBuilder builder = ConfigElementBuilder.ofInt(this, String.valueOf(this.list.size()), value);
+		this.list.add(builder);
+		return builder;
 	}
 	
-	public void addDouble(double value) throws CompilerException {
+	public ConfigElementBuilder addDouble(double value) throws CompilerException {
 		requireNotClosed();
-		this.list.add(ConfigElementBuilder.ofDouble(this, String.valueOf(this.list.size()), value));
+		ConfigElementBuilder builder = ConfigElementBuilder.ofDouble(this, String.valueOf(this.list.size()), value);
+		this.list.add(builder);
+		return builder;
 	}
 	
 	public ConfigObjectBuilder addObject() throws CompilerException {

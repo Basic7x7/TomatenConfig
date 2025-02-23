@@ -94,7 +94,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		public ConfigElementBuilder create(ConfigElementBuilder parent, String key);
 	}
 	
-	private void set(String[] key, ElementBuilderFactory valueFactory) throws CompilerException {
+	private ConfigElementBuilder set(String[] key, ElementBuilderFactory valueFactory) throws CompilerException {
 		requireNotClosed();
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
@@ -105,26 +105,27 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (obj.map.put(lastKey, newElement) != null) {
 			throw new CompilerException("Key does already exist: " + newElement.getFullKey());
 		}
+		return newElement;
 	}
 	
-	public void setString(String[] key, String value) throws CompilerException {
+	public ConfigElementBuilder setString(String[] key, String value) throws CompilerException {
 		requireNotClosed();
-		this.set(key, (parent, k) -> ConfigElementBuilder.ofString(parent, k, value));
+		return this.set(key, (parent, k) -> ConfigElementBuilder.ofString(parent, k, value));
 	}
 	
-	public void setBoolean(String[] key, boolean value) throws CompilerException {
+	public ConfigElementBuilder setBoolean(String[] key, boolean value) throws CompilerException {
 		requireNotClosed();
-		this.set(key, (parent, k) -> ConfigElementBuilder.ofBoolean(parent, k, value));
+		return this.set(key, (parent, k) -> ConfigElementBuilder.ofBoolean(parent, k, value));
 	}
 	
-	public void setInt(String[] key, long value) throws CompilerException {
+	public ConfigElementBuilder setInt(String[] key, long value) throws CompilerException {
 		requireNotClosed();
-		this.set(key, (parent, k) -> ConfigElementBuilder.ofInt(parent, k, value));
+		return this.set(key, (parent, k) -> ConfigElementBuilder.ofInt(parent, k, value));
 	}
 	
-	public void setDouble(String[] key, double value) throws CompilerException {
+	public ConfigElementBuilder setDouble(String[] key, double value) throws CompilerException {
 		requireNotClosed();
-		this.set(key, (parent, k) -> ConfigElementBuilder.ofDouble(parent, k, value));
+		return this.set(key, (parent, k) -> ConfigElementBuilder.ofDouble(parent, k, value));
 	}
 	
 	

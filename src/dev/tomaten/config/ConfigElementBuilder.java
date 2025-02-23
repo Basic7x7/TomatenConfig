@@ -1,7 +1,5 @@
 package dev.tomaten.config;
 
-import de.tomatengames.lib.compiler.CompilerException;
-
 abstract class ConfigElementBuilder {
 	private final ConfigElementBuilder parent;
 	private final String key;
