@@ -1,5 +1,6 @@
 package dev.tomaten.config;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -121,6 +122,25 @@ public class ConfigValue<V> {
 			throw exceptionFactory.apply(this.error);
 		}
 		return value;
+	}
+	
+	/**
+	 * Returns the value of this configuration value if it is present and iterable.
+	 * If the value is not present or not iterable, an empty collection is returned.
+	 * <p>
+	 * <i>Warning</i>: The generic type {@code T} of the returned Iterable is determined by how this method is called and unchecked.
+	 * The caller must make sure that if the configuration value is present and iterable, it MUST be an {@code Iterable<T>}
+	 * with exactly that type {@code T}.
+	 * @param <T> The type of elements in the returned Iterable. The configuration value must be an {@code Iterable<T>} if it is present.
+	 * @return The value of this configuration value if it is present and iterable, or an empty collection otherwise. Not null.
+	 * @see #isPresent()
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> Iterable<T> orEmptyIterable() {
+		if (this.value != null && this.value instanceof Iterable) {
+			return (Iterable<T>) this.value;
+		}
+		return Collections.emptyList();
 	}
 	
 	/**

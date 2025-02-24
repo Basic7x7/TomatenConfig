@@ -2,11 +2,13 @@ package dev.tomaten.config;
 
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 import dev.tomaten.config.ConfigElement.Type;
 
-public abstract class AbstractConfig<Self extends AbstractConfig<Self>> {
+public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implements Iterable<Self> {
 	private Supplier<Self> factory;
 	private ConfigElement data;
 	
@@ -239,6 +241,37 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> {
 	
 	public ConfigValue<Boolean> getBoolean(int index) {
 		return this.get(index, ConfigElement::getBoolean);
+	}
+	
+	
+	@Override
+	public Iterator<Self> iterator() throws ConfigError {
+		// Throws a ConfigError if this config data is not iterable / not a list.
+		return new Iter();
+	}
+	
+	private class Iter implements Iterator<Self> {
+		private final int size;
+		private int next;
+		
+		public Iter() {
+			this.size = data.size();
+			this.next = 0;
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return this.next < this.size;
+		}
+		
+		@Override
+		public Self next() {
+			if (!this.hasNext()) {
+				throw new NoSuchElementException();
+			}
+			ConfigElement element = data.get(this.next);
+			return newSubConfig(element);
+		}
 	}
 	
 }
