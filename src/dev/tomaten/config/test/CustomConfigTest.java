@@ -10,7 +10,7 @@ class CustomConfigTest {
 	public static void main(String[] args) {
 		Config config = TomatenConfig.load(Config::new, Paths.get("../../../Test/test.toml"));
 		Config a = config.getObject("a").orError();
-		System.out.println(a.getString("x").orDefault(null));
+		System.out.println(a.getDouble("x").orError());
 		System.out.println(config.getString("b"));
 	}
 	
