@@ -1,5 +1,6 @@
 package dev.tomaten.config;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -16,13 +17,13 @@ import java.util.function.Function;
  */
 public class ConfigValue<V> {
 	private final V value;
-	private final ConfigType type;
-	private final String errorMessage;
+	private final ConfigElement.Type type;
+	private final ConfigError error;
 	
-	ConfigValue(V value, ConfigType type, String errorMessage) {
+	ConfigValue(V value, ConfigElement.Type type, ConfigError error) {
 		this.value = value;
 		this.type = type;
-		this.errorMessage = errorMessage;
+		this.error = error;
 	}
 	
 	/**
@@ -35,7 +36,7 @@ public class ConfigValue<V> {
 	 * 
 	 * @return the type of this configuration value. Null if the configuration value does not exist.
 	 */
-	public ConfigType getType() {
+	public ConfigElement.Type getType() {
 		return this.type;
 	}
 	
@@ -99,7 +100,7 @@ public class ConfigValue<V> {
 	 */
 	public V orError() throws ConfigError {
 		if (value == null) {
-			throw new ConfigError(this.errorMessage);
+			throw new ConfigError(error != null ? error.getMessage() : null, error);
 		}
 		return value;
 	}
@@ -109,15 +110,15 @@ public class ConfigValue<V> {
 	 * If the value is not present, an exception is thrown using the provided factory method.
 	 * @param <T> The type of the exception to be thrown.
 	 * @param exceptionFactory A factory method that creates an exception that should be thrown if the value is not present. Not null.
-	 * The String passed to the factory method is the error message, that would be used by the {@link #orError()} method.
-	 * It is not mandatory to use this error message.
+	 * The parameter passed to the factory method is the error that describes why the value is not present.
+	 * It is not mandatory to use this error parameter. The error parameter may be null if the reason is unknown.
 	 * @return The value of this configuration value if it is present. Not null.
 	 * @throws T If the configuration value is not present.
 	 * @see #isPresent()
 	 */
-	public <T extends Throwable> V orThrow(Function<String, T> exceptionFactory) throws T {
+	public <T extends Throwable> V orThrow(Function<ConfigError, T> exceptionFactory) throws T {
 		if (value == null) {
-			throw exceptionFactory.apply(this.errorMessage);
+			throw exceptionFactory.apply(this.error);
 		}
 		return value;
 	}
@@ -133,20 +134,20 @@ public class ConfigValue<V> {
 	 * @param <T> The type of the result of the mapper function.
 	 * @param mapperFunction The function that maps this configuration value to a new value. Not null.
 	 * The mapper function can assume that the input value is non-null.
-	 * If the mapper function returns null, the resulting configuration value will not be present.
+	 * If the mapper function returns null or throws a {@link ConfigError}, the resulting configuration value will not be present.
 	 * @return A new ConfigValue that contains the result of applying the mapper function to this configuration value. Not null.
 	 * @see #isPresent()
 	 */
 	public <T> ConfigValue<T> map(Function<? super V, T> mapperFunction) {
 		if (value == null) {
-			return new ConfigValue<>(null, type, errorMessage);
+			return new ConfigValue<>(null, type, error);
 		}
-		T mappedValue = mapperFunction.apply(value);
-		String errorMsg = this.errorMessage;
-		if (errorMsg == null && mappedValue == null) {
-			errorMsg = "Mapper function returned null";
+		try {
+			T mappedValue = mapperFunction.apply(value);
+			return new ConfigValue<>(mappedValue, type, error);
+		} catch (ConfigError e) {
+			return new ConfigValue<>(null, type, e);
 		}
-		return new ConfigValue<>(mappedValue, type, errorMsg);
 	}
 	
 	/**

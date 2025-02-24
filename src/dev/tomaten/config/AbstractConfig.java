@@ -19,6 +19,10 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> {
 		this.data = data;
 	}
 	
+	protected ConfigElement getData() {
+		return this.data;
+	}
+	
 	
 	protected ConfigElement navigate(String name, boolean allowNull) throws ConfigError {
 		requireNotNull(name, "The name ...");
@@ -90,90 +94,151 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> {
 	}
 	
 	
-	public Self getAny(String name) throws ConfigError {
-		return this.newSubConfig(this.navigate(name, false));
+	private <V> ConfigElementTransformer<V> configTransformerWrapper(ConfigTransformer<? super Self, V> transformer) {
+		if (transformer == null) {
+			return null;
+		}
+		return element -> {
+			Self conf = this.newSubConfig(element);
+			return transformer.transform(element, conf);
+		};
 	}
 	
-	public Self getAnyOptional(String name) {
-		ConfigElement element = this.navigate(name, true);
-		return element != null ? this.newSubConfig(element) : null;
+	public <V> ConfigValue<V> get(ConfigElementTransformer<V> transformer) {
+		try {
+			V value = transformer != null ? transformer.transform(this.data) : null;
+			return new ConfigValue<>(value, this.data.getType(), null);
+		} catch (ConfigError e) {
+			return new ConfigValue<>(null, this.data.getType(), e);
+		}
 	}
 	
-	public Self getAny(int index) throws ConfigError {
-		return this.newSubConfig(this.data.get(index));
+	public <V> ConfigValue<V> get(ConfigTransformer<? super Self, V> transformer) {
+		return this.get(configTransformerWrapper(transformer));
 	}
 	
-	public Self getAnyOptional(int index) {
-		ConfigElement element = this.data.getOrNull(index);
-		return element != null ? this.newSubConfig(element) : null;
+	public <V> ConfigValue<V> get(String name, ConfigElementTransformer<V> transformer) {
+		ConfigElement element = null;
+		try {
+			element = this.navigate(name, false);
+			V value = transformer != null ? transformer.transform(element) : null;
+			return new ConfigValue<>(value, element.getType(), null);
+		} catch (ConfigError e) {
+			return new ConfigValue<>(null, element != null ? element.getType() : null, e);
+		}
 	}
 	
-	
-	public Self getObject(String name) throws ConfigError {
-		ConfigElement element = this.typeCheck(this.navigate(name, false), Type.OBJECT);
-		return this.newSubConfig(element);
+	public <V> ConfigValue<V> get(String name, ConfigTransformer<? super Self, V> transformer) {
+		return this.get(name, configTransformerWrapper(transformer));
 	}
 	
-	public Self getObjectOptional(String name) {
-		ConfigElement element = this.typeCheck(this.navigate(name, true), Type.OBJECT);
-		return element != null ? this.newSubConfig(element) : null;
+	public <V> ConfigValue<V> get(int index, ConfigElementTransformer<V> transformer) {
+		ConfigElement element = null;
+		try {
+			element = this.data.get(index);
+			V value = transformer != null ? transformer.transform(element) : null;
+			return new ConfigValue<>(value, element.getType(), null);
+		} catch (ConfigError e) {
+			return new ConfigValue<>(null, element != null ? element.getType() : null, e);
+		}
 	}
 	
-	public Self getObject(int index) throws ConfigError {
-		ConfigElement element = this.typeCheck(this.data.get(index), Type.OBJECT);
-		return this.newSubConfig(element);
-	}
-	
-	public Self getObjectOptional(int index) {
-		ConfigElement element = this.typeCheck(this.data.getOrNull(index), Type.OBJECT);
-		return element != null ? this.newSubConfig(element) : null;
-	}
-	
-	
-	public Self getList(String name) throws ConfigError {
-		ConfigElement element = this.typeCheck(this.navigate(name, false), Type.LIST);
-		return this.newSubConfig(element);
-	}
-	
-	public Self getListOptional(String name) {
-		ConfigElement element = this.typeCheck(this.navigate(name, true), Type.LIST);
-		return element != null ? this.newSubConfig(element) : null;
-	}
-	
-	public Self getList(int index) throws ConfigError {
-		ConfigElement element = this.typeCheck(this.data.get(index), Type.LIST);
-		return this.newSubConfig(element);
-	}
-	
-	public Self getListOptional(int index) {
-		ConfigElement element = this.typeCheck(this.data.getOrNull(index), Type.LIST);
-		return element != null ? this.newSubConfig(element) : null;
+	public <V> ConfigValue<V> get(int index, ConfigTransformer<? super Self, V> transformer) {
+		return this.get(index, configTransformerWrapper(transformer));
 	}
 	
 	
-	public String getString() throws ConfigError {
-		return this.data.getString();
+	
+	public ConfigValue<Self> getAny(String name) {
+		return this.get(name, element -> this.newSubConfig(element));
 	}
 	
-	public String getStringOrDefault(String defaultValue) {
-		return this.data.getStringOrDefault(defaultValue);
+	public ConfigValue<Self> getAny(int index) {
+		return this.get(index, element -> this.newSubConfig(element));
 	}
 	
-	public String getString(String name) throws ConfigError {
-		return this.navigate(name, false).getString();
+	
+	public ConfigValue<Self> getObject(String name) {
+		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
-	public String getStringOrDefault(String name, String defaultValue) {
-		ConfigElement element = this.navigate(name, true);
-		return element != null ? element.getStringOrDefault(defaultValue) : defaultValue;
+	public ConfigValue<Self> getObject(int index) {
+		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
-	public String getString(int index) throws ConfigError {
-		return this.data.get(index).getString();
+	
+	public ConfigValue<Self> getList(String name) {
+		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
-	public String getStringOrDefault(int index, String defaultValue) {
-		ConfigElement element = this.data.getOrNull(index);
-		return element != null ? element.getStringOrDefault(defaultValue) : defaultValue;
+	public ConfigValue<Self> getList(int index) {
+		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
+	
+	
+	
+	public ConfigValue<String> getString() {
+		return this.get(ConfigElement::getString);
+	}
+	
+	public ConfigValue<String> getString(String name) {
+		return this.get(name, ConfigElement::getString);
+	}
+	
+	public ConfigValue<String> getString(int index) {
+		return this.get(index, ConfigElement::getString);
+	}
+	
+	
+	public ConfigValue<Long> getLong() {
+		return this.get(ConfigElement::getLong);
+	}
+	
+	public ConfigValue<Long> getLong(String name) {
+		return this.get(name, ConfigElement::getLong);
+	}
+	
+	public ConfigValue<Long> getLong(int index) {
+		return this.get(index, ConfigElement::getLong);
+	}
+	
+	
+	public ConfigValue<Integer> getInt() {
+		return this.get(ConfigElement::getInt);
+	}
+	
+	public ConfigValue<Integer> getInt(String name) {
+		return this.get(name, ConfigElement::getInt);
+	}
+	
+	public ConfigValue<Integer> getInt(int index) {
+		return this.get(index, ConfigElement::getInt);
+	}
+	
+	
+	public ConfigValue<Double> getDouble() {
+		return this.get(ConfigElement::getDouble);
+	}
+	
+	public ConfigValue<Double> getDouble(String name) {
+		return this.get(name, ConfigElement::getDouble);
+	}
+	
+	public ConfigValue<Double> getDouble(int index) {
+		return this.get(index, ConfigElement::getDouble);
+	}
+	
+	
+	public ConfigValue<Boolean> getBoolean() {
+		return this.get(ConfigElement::getBoolean);
+	}
+	
+	public ConfigValue<Boolean> getBoolean(String name) {
+		return this.get(name, ConfigElement::getBoolean);
+	}
+	
+	public ConfigValue<Boolean> getBoolean(int index) {
+		return this.get(index, ConfigElement::getBoolean);
+	}
+	
 }
