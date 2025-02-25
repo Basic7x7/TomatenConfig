@@ -1,6 +1,10 @@
 package dev.tomaten.config;
 
+import static de.tomatengames.util.RequirementUtil.requireNotNull;
+
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -142,6 +146,92 @@ public class ConfigValue<V> {
 		}
 		return Collections.emptyList();
 	}
+	
+	
+	/**
+	 * If the configuration value is present and iterable, an {@link Iterable} is returned
+	 * that contains all elements from the configuration value that match the given class.
+	 * If the configuration value is not present or not iterable, an empty collection is returned.
+	 * <p>
+	 * This method should be used the same way as {@link #orEmptyIterable()}.
+	 * In contrast to {@link #orEmptyIterable()}, this method is type-safe.
+	 * This method will <b>not</b> return the configuration value itself,
+	 * but an Iterable that contains the elements from the iterable configuration value.
+	 * 
+	 * @param <T> The type of elements in the returned Iterable.
+	 * It is recommended that the configuration value is an {@code Iterable<T>} if it is present.
+	 * @param elementCls The class of the elements. Not null.
+	 * @return An {@link Iterable} that contains all elements from the configuration value that match the given class,
+	 * if the configuration value is present and iterable.
+	 * Otherwise, an empty collection. Not null.
+	 */
+	public <T> Iterable<T> orEmptyIterable(Class<T> elementCls) {
+		requireNotNull(elementCls, "The element class ...");
+		if (this.value != null && this.value instanceof Iterable) {
+			Iterable<?> valueIterable = (Iterable<?>) this.value;
+			return () -> new TypeFilterIterator<>(valueIterable.iterator(), elementCls);
+		}
+		return Collections.emptyList();
+	}
+	
+	private static class TypeFilterIterator<O> implements Iterator<O> {
+		private final Iterator<?> baseIterator;
+		private final Class<O> outputClass;
+		
+		private boolean nextReady;
+		private boolean hasNext;
+		private O next;
+		
+		public TypeFilterIterator(Iterator<?> baseIterator, Class<O> outputClass) {
+			this.baseIterator = baseIterator;
+			this.outputClass = outputClass;
+			
+			this.nextReady = false;
+			this.hasNext = false;
+			this.next = null;
+		}
+		
+		private void makeNextReady() {
+			if (this.nextReady) {
+				return;
+			}
+			while (true) {
+				if (!this.baseIterator.hasNext()) {
+					this.hasNext = false;
+					this.next = null;
+					this.nextReady = true;
+					return;
+				}
+				Object next = this.baseIterator.next();
+				if (next == null || this.outputClass.isInstance(next)) {
+					@SuppressWarnings("unchecked")
+					O nextOut = (O) next;
+					
+					this.hasNext = true;
+					this.next = nextOut;
+					this.nextReady = true;
+					return;
+				}
+			}
+		}
+		
+		@Override
+		public boolean hasNext() {
+			this.makeNextReady();
+			return this.hasNext;
+		}
+		
+		@Override
+		public O next() {
+			this.makeNextReady();
+			if (!this.hasNext) {
+				throw new NoSuchElementException();
+			}
+			this.nextReady = false;
+			return this.next;
+		}
+	}
+	
 	
 	/**
 	 * Returns a new {@link ConfigValue} that contains the result of applying the given mapper function to this configuration value.

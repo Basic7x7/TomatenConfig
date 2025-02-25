@@ -27,13 +27,13 @@ class TOMLConfigParser {
 	static {
 		grammar.enableLookAhead("COMMENT");
 		grammar.add("COMMENT -> '#' INNER_COMMENT");
-		grammar.add("COMMENT -> :NEWLINE: LINESTART");
+		grammar.add("COMMENT -> :NEWLINE:");
 		grammar.add("INNER_COMMENT -> any THIS");
-		grammar.add("INNER_COMMENT -> :NEWLINE: LINESTART");
+		grammar.add("INNER_COMMENT -> :NEWLINE:");
 		
 		
 		grammar.add("LINESTART -> space THIS");
-		grammar.add("LINESTART -> COMMENT");
+		grammar.add("LINESTART -> COMMENT LINESTART");
 		grammar.add("LINESTART -> '[[' KEY ']]' LINEEND").withPostEvent((t, context) -> {
 			context.key = context.keyBuffer();
 			ConfigListBuilder list = context.rootTable.createOrGetList(context.key);
@@ -51,7 +51,7 @@ class TOMLConfigParser {
 		
 		
 		grammar.add("LINEEND -> space THIS");
-		grammar.add("LINEEND -> COMMENT");
+		grammar.add("LINEEND -> COMMENT LINESTART");
 		grammar.add("LINEEND ->"); // Final state
 		
 		
@@ -127,7 +127,7 @@ class TOMLConfigParser {
 		grammar.add("LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
 		
 		
-		// --- NUmbers ---
+		// --- Numbers ---
 		
 		grammar.enableLookAhead("NUMBER");
 		
@@ -222,6 +222,25 @@ class TOMLConfigParser {
 		});
 		
 		
+		// --- Arrays ---
+		
+		// Note: This implementation ignores commas, so multiple commas can follow each other.
+		// This also allows to specify multiple values after each other with no separating comma.
+		// This doesn't exactly match the TOML spec, but all valid TOML arrays are also valid for this implementation.
+		grammar.enableLookAhead("ARRAY");
+		grammar.add("ARRAY -> '[' INNER_ARRAY").withEvent((t, context) -> context.list = context.insertNewList());
+		grammar.add("INNER_ARRAY -> ']'").withEvent((t, context) -> {
+			context.value = context.list;
+			context.list = null;
+		});
+		grammar.add("INNER_ARRAY -> space THIS");
+		grammar.add("INNER_ARRAY -> ',' THIS");
+		grammar.add("INNER_ARRAY -> :NEWLINE: THIS");
+		grammar.add("INNER_ARRAY -> COMMENT THIS");
+		grammar.add("INNER_ARRAY -> VALUE THIS");
+		
+		
+		
 		grammar.add("VALUE -> space THIS");
 		grammar.add("VALUE -> 'true'").withEvent((t, context) -> {
 			context.value = context.insertBooleanValue(true);
@@ -229,7 +248,8 @@ class TOMLConfigParser {
 		grammar.add("VALUE -> 'false'").withEvent((t, context) -> {
 			context.value = context.insertBooleanValue(false);
 		});
-		// TODO Array, Inline Table, ...
+		// TODO Inline Table, ...
+		grammar.add("VALUE -> ARRAY");
 		grammar.add("VALUE -> NUMBER");
 		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
 			context.value = context.insertStringValue(context.flushBuffer());
@@ -297,6 +317,16 @@ class TOMLConfigParser {
 				throw new CompilerException("No key found to insert the double value");
 			}
 			return this.table.setDouble(this.key, value);
+		}
+		
+		public ConfigListBuilder insertNewList() throws CompilerException {
+			if (this.list != null) {
+				return this.list.addList();
+			}
+			if (this.key == null) {
+				throw new CompilerException("No key found to insert the list");
+			}
+			return this.table.createList(this.key);
 		}
 	}
 	

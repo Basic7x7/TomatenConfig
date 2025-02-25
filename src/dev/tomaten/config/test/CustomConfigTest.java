@@ -12,6 +12,10 @@ class CustomConfigTest {
 		Config a = config.getObject("a").orError();
 		System.out.println(a.getDouble("x").orError());
 		System.out.println(config.getString("b"));
+		
+		for (Config el : config.getList("arr").orEmptyIterable(Config.class)) {
+			System.out.println(el.getInt().orError());
+		}
 	}
 	
 }

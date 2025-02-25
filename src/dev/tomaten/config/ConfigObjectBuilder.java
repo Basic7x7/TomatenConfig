@@ -89,6 +89,22 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		return list;
 	}
 	
+	public ConfigListBuilder createList(String... key) throws CompilerException {
+		requireNotClosed();
+		if (key.length <= 0) {
+			throw new CompilerException("No key specified");
+		}
+		ConfigObjectBuilder obj = this.navigate(key, key.length-1);
+		String lastKey = key[key.length-1];
+		ConfigElementBuilder element = obj.map.get(lastKey);
+		if (element != null) {
+			throw new CompilerException("'" + element.getFullKey() + "' does already exist");
+		}
+		ConfigListBuilder list = new ConfigListBuilder(obj, lastKey);
+		obj.map.put(lastKey, list);
+		return list;
+	}
+	
 	
 	private static interface ElementBuilderFactory {
 		public ConfigElementBuilder create(ConfigElementBuilder parent, String key);

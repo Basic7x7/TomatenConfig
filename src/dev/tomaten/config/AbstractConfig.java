@@ -269,7 +269,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 			if (!this.hasNext()) {
 				throw new NoSuchElementException();
 			}
-			ConfigElement element = data.get(this.next);
+			ConfigElement element = data.get(this.next++);
 			return newSubConfig(element);
 		}
 	}
