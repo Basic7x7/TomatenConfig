@@ -21,7 +21,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 			ConfigElement e = entry.getValue().toElement();
 			elementMap.put(entry.getKey(), e);
 		}
-		return new ConfigObject(this.getFullKey(), elementMap);
+		return new ConfigObject(this.getFullKey(), elementMap, this.getOriginalType());
 	}
 	
 	private ConfigObjectBuilder navigate(String[] keys, int len) throws CompilerException {

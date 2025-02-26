@@ -18,7 +18,7 @@ class ConfigListBuilder extends ConfigElementBuilder {
 		for (ConfigElementBuilder builder : this.list) {
 			elementList.add(builder.toElement());
 		}
-		return new ConfigList(this.getFullKey(), elementList);
+		return new ConfigList(this.getFullKey(), elementList, this.getOriginalType());
 	}
 	
 	

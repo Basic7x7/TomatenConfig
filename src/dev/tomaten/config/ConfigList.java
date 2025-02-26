@@ -2,13 +2,14 @@ package dev.tomaten.config;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class ConfigList extends ConfigElement {
 	private final List<ConfigElement> elements;
 	private final List<ConfigElement> unmodElements;
 	
-	public ConfigList(String fullName, List<ConfigElement> elements) {
-		super(fullName);
+	public ConfigList(String fullName, List<ConfigElement> elements, String originalType) {
+		super(fullName, originalType);
 		this.elements = elements;
 		this.unmodElements = Collections.unmodifiableList(elements);
 	}
@@ -45,6 +46,12 @@ class ConfigList extends ConfigElement {
 	@Override
 	public List<ConfigElement> getList() {
 		return this.unmodElements;
+	}
+	
+	
+	@Override
+	public String toString() {
+		return super.toString() + "=[ " + this.elements.stream().map(e -> e.toString()).collect(Collectors.joining(", ")) + " ]";
 	}
 	
 }

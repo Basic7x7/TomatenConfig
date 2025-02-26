@@ -3,8 +3,8 @@ package dev.tomaten.config;
 class ConfigInt extends ConfigElement {
 	private final long value;
 	
-	public ConfigInt(String fullName, long value) {
-		super(fullName);
+	public ConfigInt(String fullName, long value, String originalType) {
+		super(fullName, originalType);
 		this.value = value;
 	}
 	
@@ -32,5 +32,10 @@ class ConfigInt extends ConfigElement {
 	@Override
 	public double getDoubleOrDefault(double defaultValue) {
 		return (double) this.value;
+	}
+	
+	@Override
+	public String toString() {
+		return super.toString() + "=" + this.value;
 	}
 }

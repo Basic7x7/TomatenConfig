@@ -1,6 +1,7 @@
 package dev.tomaten.config.test;
 
 import java.nio.file.Paths;
+import java.time.ZoneId;
 
 import dev.tomaten.config.Config;
 import dev.tomaten.config.TomatenConfig;
@@ -13,10 +14,12 @@ class CustomConfigTest {
 		System.out.println(a.getDouble("x").orError());
 		System.out.println(config.getString("b"));
 		
-		System.out.println(config.getLocalTime("obj.x").orError());
+		System.out.println(config.getString("obj.x"));
+		System.out.println(config.getDateTime("obj.x").orError());
+		System.out.println(config.getDateTime("obj.x").orError().withZoneSameInstant(ZoneId.systemDefault()));
 		
 		for (Config el : config.getList("arr").orEmptyIterable(Config.class)) {
-			System.out.println(el.getInt().orError());
+			System.out.println(el);
 		}
 	}
 	

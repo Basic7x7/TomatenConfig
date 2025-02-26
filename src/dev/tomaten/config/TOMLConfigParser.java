@@ -42,11 +42,16 @@ class TOMLConfigParser {
 		grammar.add("LINESTART -> '[[' KEY ']]' LINEEND").withPostEvent((t, context) -> {
 			context.key = context.keyBuffer();
 			ConfigListBuilder list = context.rootTable.createOrGetList(context.key);
-			context.table = list.addObject();
+			list.setOriginalType("array-of-tables");
+			ConfigObjectBuilder obj = list.addObject();
+			obj.setOriginalType("table");
+			context.table = obj;
 		});
 		grammar.add("LINESTART -> '[' KEY ']' LINEEND").withPostEvent((t, context) -> {
 			context.key = context.keyBuffer();
-			context.table = context.rootTable.createObject(context.key);
+			ConfigObjectBuilder obj = context.rootTable.createObject(context.key);
+			obj.setOriginalType("table");
+			context.table = obj;
 		});
 		grammar.add("LINESTART -> KEY '=' VALUE LINEEND").withIntermediateEvent(1, (t, context) -> {
 			context.key = context.keyBuffer();
@@ -141,7 +146,7 @@ class TOMLConfigParser {
 		grammar.add("HEX ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 16);
-				context.insertIntValue(value);
+				context.insertIntValue(value).setOriginalType("integer");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -153,7 +158,7 @@ class TOMLConfigParser {
 		grammar.add("OCT ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 8);
-				context.insertIntValue(value);
+				context.insertIntValue(value).setOriginalType("integer");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -165,7 +170,7 @@ class TOMLConfigParser {
 		grammar.add("BIN ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 2);
-				context.insertIntValue(value);
+				context.insertIntValue(value).setOriginalType("integer");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -175,17 +180,17 @@ class TOMLConfigParser {
 		grammar.add("NUMBER -> '0.' digit FLOAT").withEvent(bufferEvent("0.")).withEvent(bufferEvent(3));
 		grammar.add("NUMBER -> sign '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
 		grammar.add("NUMBER -> '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
-		grammar.add("NUMBER -> sign '0'").withEvent((t, context) -> context.insertIntValue(0L));
-		grammar.add("NUMBER -> '0'").withEvent((t, context) -> context.insertIntValue(0L));
+		grammar.add("NUMBER -> sign '0'").withEvent((t, context) -> context.insertIntValue(0L).setOriginalType("integer"));
+		grammar.add("NUMBER -> '0'").withEvent((t, context) -> context.insertIntValue(0L).setOriginalType("integer"));
 		grammar.add("NUMBER -> sign nonzero_digit DEC").withEvent(bufferEvent(0)).withEvent(bufferEvent(1));
 		grammar.add("NUMBER -> nonzero_digit DEC").withEvent(bufferEvent(0));
 		
-		grammar.add("NUMBER -> '+inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY));
-		grammar.add("NUMBER -> '-inf'").withEvent((t, context) -> context.insertDoubleValue(Double.NEGATIVE_INFINITY));
-		grammar.add("NUMBER -> 'inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY));
+		grammar.add("NUMBER -> '+inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY).setOriginalType("float"));
+		grammar.add("NUMBER -> '-inf'").withEvent((t, context) -> context.insertDoubleValue(Double.NEGATIVE_INFINITY).setOriginalType("float"));
+		grammar.add("NUMBER -> 'inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY).setOriginalType("float"));
 		
-		grammar.add("NUMBER -> sign 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN));
-		grammar.add("NUMBER -> 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN));
+		grammar.add("NUMBER -> sign 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN).setOriginalType("float"));
+		grammar.add("NUMBER -> 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN).setOriginalType("float"));
 		
 		grammar.add("DEC -> digit THIS").withEvent(bufferEvent(0));
 		grammar.add("DEC -> '_' digit THIS").withEvent(bufferEvent(1)); // Underscores must be surrounded by digits
@@ -195,7 +200,7 @@ class TOMLConfigParser {
 		grammar.add("DEC ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseLong(context.flushBuffer());
-				context.insertIntValue(value);
+				context.insertIntValue(value).setOriginalType("integer");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -208,7 +213,7 @@ class TOMLConfigParser {
 		grammar.add("FLOAT ->").withEvent((t, context) -> {
 			try {
 				double value = Double.parseDouble(context.flushBuffer());
-				context.insertDoubleValue(value);
+				context.insertDoubleValue(value).setOriginalType("float");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -219,7 +224,7 @@ class TOMLConfigParser {
 		grammar.add("EXP ->").withEvent((t, context) -> {
 			try {
 				double value = Double.parseDouble(context.flushBuffer());
-				context.insertDoubleValue(value);
+				context.insertDoubleValue(value).setOriginalType("float");
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -232,8 +237,13 @@ class TOMLConfigParser {
 		// This also allows to specify multiple values after each other with no separating comma.
 		// This doesn't exactly match the TOML spec, but all valid TOML arrays are also valid for this implementation.
 		grammar.enableLookAhead("ARRAY");
-		grammar.add("ARRAY -> '[' INNER_ARRAY").withEvent((t, context) -> context.list = context.insertNewList());
+		grammar.add("ARRAY -> '[' INNER_ARRAY").withEvent((t, context) -> {
+			ConfigListBuilder list = context.insertNewList();
+			list.setOriginalType("array");
+			context.list = list;
+		});
 		grammar.add("INNER_ARRAY -> ']'").withEvent((t, context) -> {
+			context.list.close();
 			context.list = null;
 		});
 		grammar.add("INNER_ARRAY -> space THIS");
@@ -250,10 +260,13 @@ class TOMLConfigParser {
 		// This doesn't match the TOML spec, but all valid TOML inline tables are also valid for this implementation.
 		grammar.enableLookAhead("INLINE_TABLE");
 		grammar.add("INLINE_TABLE -> '{' INNER_INLINE_TABLE").withEvent((t, context) -> {
-			context.inlineTables.addFirst(context.insertNewObject());
+			ConfigObjectBuilder obj = context.insertNewObject();
+			obj.setOriginalType("table-inline");
+			context.inlineTables.addFirst(obj);
 		});
 		grammar.add("INNER_INLINE_TABLE -> '}'").withEvent((t, context) -> {
-			context.inlineTables.removeFirst();
+			ConfigObjectBuilder obj = context.inlineTables.removeFirst();
+			obj.close();
 		});
 		grammar.add("INNER_INLINE_TABLE -> space THIS");
 		grammar.add("INNER_INLINE_TABLE -> ',' THIS");
@@ -271,13 +284,20 @@ class TOMLConfigParser {
 			.withEvent(clearBufferEvent())
 			.withEvent((t, context) -> {
 				context.buffer(new String(t, 0, "yyyy-mm-dd".length()));
+				context.originalTypeBuf = "date-local"; // provisional
 			});
-		grammar.add("DATE_TIME -> TIME").withEvent(clearBufferEvent());
+		grammar.add("DATE_TIME -> TIME").withEvent(clearBufferEvent()).withEvent((t, context) -> {
+			context.originalTypeBuf = "time-local";
+		});
 		
-		grammar.add("TIME_APPENDIX -> `T` TIME TIME_OFFSET").withEvent(bufferEvent('T'));
-		grammar.add("TIME_APPENDIX -> space [digit] TIME TIME_OFFSET").withEvent(bufferEvent('T'));
+		grammar.add("TIME_APPENDIX -> `T` TIME TIME_OFFSET").withEvent(bufferEvent('T')).withEvent((t, context) -> {
+			context.originalTypeBuf = "datetime-local"; // provisional
+		});
 		// There is no TIME_APPENDIX if there are multiple spaces without a digit (coming from the TIME).
 		// There may be spaces after a DATE_TIME that should be ignored.
+		grammar.add("TIME_APPENDIX -> space [digit] TIME TIME_OFFSET").withEvent(bufferEvent('T')).withEvent((t, context) -> {
+			context.originalTypeBuf = "datetime-local"; // provisional
+		});
 		grammar.add("TIME_APPENDIX ->");
 		
 		grammar.enableLookAhead("TIME");
@@ -290,9 +310,12 @@ class TOMLConfigParser {
 		grammar.add("TIME_SEC_FRACTION_LOOP -> digit THIS").withEvent(bufferEvent(0));
 		grammar.add("TIME_SEC_FRACTION_LOOP ->");
 		
-		grammar.add("TIME_OFFSET -> `Z`").withEvent(bufferEvent('Z'));
+		grammar.add("TIME_OFFSET -> `Z`").withEvent(bufferEvent('Z')).withEvent((t, context) -> {
+			context.originalTypeBuf = "datetime-offset";
+		});
 		grammar.add("TIME_OFFSET -> sign digit digit ':' digit digit").withEvent((t, context) -> {
 			context.buffer(new String(t, 0, "+00:00".length()));
+			context.originalTypeBuf = "datetime-offset";
 		});
 		grammar.add("TIME_OFFSET ->");
 		
@@ -300,20 +323,21 @@ class TOMLConfigParser {
 		
 		grammar.add("VALUE -> space THIS");
 		grammar.add("VALUE -> 'true'").withEvent((t, context) -> {
-			context.insertBooleanValue(true);
+			context.insertBooleanValue(true).setOriginalType("bool");
 		});
 		grammar.add("VALUE -> 'false'").withEvent((t, context) -> {
-			context.insertBooleanValue(false);
+			context.insertBooleanValue(false).setOriginalType("bool");
 		});
 		grammar.add("VALUE -> DATE_TIME :VOID:").withPostEvent((t, context) -> {
 			// Date/Time values are represented as a string value.
-			context.insertStringValue(context.flushBuffer());
+			context.insertStringValue(context.flushBuffer()).setOriginalType(context.originalTypeBuf);
+			context.originalTypeBuf = null;
 		});
 		grammar.add("VALUE -> INLINE_TABLE");
 		grammar.add("VALUE -> ARRAY");
 		grammar.add("VALUE -> NUMBER");
 		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
-			context.insertStringValue(context.flushBuffer());
+			context.insertStringValue(context.flushBuffer()).setOriginalType("string");
 		});
 	}
 	
@@ -328,6 +352,8 @@ class TOMLConfigParser {
 		private ArrayDeque<ConfigObjectBuilder> inlineTables = new ArrayDeque<>();
 		
 		private String[] key = null;
+		
+		private String originalTypeBuf = null;
 		
 		
 		public String[] keyBuffer() {

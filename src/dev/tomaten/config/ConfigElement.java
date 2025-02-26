@@ -1,13 +1,16 @@
 package dev.tomaten.config;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class ConfigElement {
 	private final String fullName;
+	private final String originalType;
 	
-	protected ConfigElement(String fullName) {
+	protected ConfigElement(String fullName, String originalType) {
 		this.fullName = fullName;
+		this.originalType = originalType;
 	}
 	
 	public String getFullName() {
@@ -15,6 +18,11 @@ public abstract class ConfigElement {
 	}
 	
 	public abstract ConfigElement.Type getType();
+	
+	public String getOriginalType() {
+		return this.originalType;
+	}
+	
 	
 	protected String typeErrorMessage(Type expected) {
 		String fullName = this.getFullName();
@@ -81,8 +89,8 @@ public abstract class ConfigElement {
 		return null;
 	}
 	
-	public Collection<String> getKeys() throws ConfigError {
-		throw new ConfigError(this.typeErrorMessage(Type.OBJECT));
+	public Collection<String> getKeys() {
+		return Collections.emptyList();
 	}
 	
 	
@@ -100,6 +108,12 @@ public abstract class ConfigElement {
 	
 	public List<ConfigElement> getList() throws ConfigError {
 		throw new ConfigError(this.typeErrorMessage(Type.LIST));
+	}
+	
+	
+	@Override
+	public String toString() {
+		return this.fullName + "[" + this.getType().name() + (this.originalType != null ? "/" + this.originalType : "") + "]";
 	}
 	
 	

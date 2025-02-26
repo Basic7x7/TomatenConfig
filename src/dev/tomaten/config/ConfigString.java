@@ -5,8 +5,8 @@ import static de.tomatengames.util.RequirementUtil.requireNotNull;
 class ConfigString extends ConfigElement {
 	private final String value;
 	
-	public ConfigString(String fullName, String value) {
-		super(fullName);
+	public ConfigString(String fullName, String value, String originalType) {
+		super(fullName, originalType);
 		requireNotNull(value, "The string value ...");
 		this.value = value;
 	}
@@ -82,5 +82,11 @@ class ConfigString extends ConfigElement {
 			return false;
 		}
 		return defaultValue;
+	}
+	
+	
+	@Override
+	public String toString() {
+		return super.toString() + "=\"" + this.value.replaceAll("\"", "\\\"") + "\"";
 	}
 }

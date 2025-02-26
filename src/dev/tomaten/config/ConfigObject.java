@@ -4,13 +4,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 class ConfigObject extends ConfigElement {
 	private final Map<String, ConfigElement> map;
 	private final Set<String> keys;
 	
-	public ConfigObject(String fullName, Map<String, ConfigElement> map) {
-		super(fullName);
+	public ConfigObject(String fullName, Map<String, ConfigElement> map, String originalType) {
+		super(fullName, originalType);
 		this.map = map;
 		this.keys = Collections.unmodifiableSet(map.keySet());
 	}
@@ -40,4 +41,8 @@ class ConfigObject extends ConfigElement {
 		return this.keys;
 	}
 	
+	@Override
+	public String toString() {
+		return super.toString() + "={ " + this.map.values().stream().map(e -> e.toString()).collect(Collectors.joining(", ")) + " }";
+	}
 }

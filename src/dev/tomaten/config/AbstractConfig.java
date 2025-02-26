@@ -3,11 +3,18 @@ package dev.tomaten.config;
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalQueries;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
@@ -99,6 +106,11 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	public Type getType(int index) {
 		ConfigElement element = this.data.getOrNull(index);
 		return element != null ? element.getType() : null;
+	}
+	
+	
+	public Collection<String> getKeys() {
+		return this.data.getKeys();
 	}
 	
 	
@@ -250,11 +262,25 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
-	
 	private static final ConfigElementTransformer<ZonedDateTime> DATE_TIME_TRANSFORMER = element -> {
 		String str = element.getString();
 		try {
-			return DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault()).parse(str, ZonedDateTime::from);
+			TemporalAccessor temp = DateTimeFormatter.ISO_DATE_TIME.parse(str);
+			
+			// If the parsed date-time has a zone or offset specified, use it to create the ZonedDateTime.
+			// If the date-time has no zone or offset, use the system default zone.
+			ZoneId zone = temp.query(TemporalQueries.zone());
+			if (zone == null) {
+				zone = ZoneId.systemDefault();
+			}
+			
+			// Create a ZonedDateTime from the TemporalAccessor using the ZoneId from above.
+			// Don't use ZonedDateTime.from(), since it would try to access the zone from the TemporalAccessor, which might not exist.
+			// Don't use DateTimeFormatter.ISO_DATE_TIME.withZone(), because it may produce cursed ZonedDateTime objects
+			// with the specified zone even if an offset is specified. Additionally, this is buggy on Java 8.
+			LocalDate date = LocalDate.from(temp);
+			LocalTime time = LocalTime.from(temp);
+			return ZonedDateTime.of(date, time, zone);
 		} catch (DateTimeParseException e) {
 			throw new ConfigError(e);
 		}
@@ -348,4 +374,9 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
+	
+	@Override
+	public String toString() {
+		return this.data.toString();
+	}
 }

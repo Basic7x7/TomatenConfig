@@ -3,8 +3,8 @@ package dev.tomaten.config;
 class ConfigBoolean extends ConfigElement {
 	private final boolean value;
 	
-	public ConfigBoolean(String fullName, boolean value) {
-		super(fullName);
+	public ConfigBoolean(String fullName, boolean value, String originalType) {
+		super(fullName, originalType);
 		this.value = value;
 	}
 	
@@ -21,5 +21,10 @@ class ConfigBoolean extends ConfigElement {
 	@Override
 	public Type getType() {
 		return Type.BOOLEAN;
+	}
+	
+	@Override
+	public String toString() {
+		return super.toString() + "=" + this.value;
 	}
 }

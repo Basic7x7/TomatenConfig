@@ -26,7 +26,7 @@ class JSONConfigParser {
 			switch (type) {
 				case STRING: {
 					String value = reader.readString(Long.MAX_VALUE);
-					return new ConfigString(fullName, value);
+					return new ConfigString(fullName, value, "string");
 				}
 				case NUMBER: {
 					String numberStr = reader.readNumberString(Long.MAX_VALUE);
@@ -34,7 +34,7 @@ class JSONConfigParser {
 					if (numberStr.chars().allMatch(c -> ('0' <= c && c <= '9') || c == '-' || c == '+')) {
 						try {
 							long longValue = Long.parseLong(numberStr);
-							return new ConfigInt(fullName, longValue);
+							return new ConfigInt(fullName, longValue, "number");
 						} catch (NumberFormatException e) {
 							// continue with parseDouble
 						}
@@ -42,18 +42,18 @@ class JSONConfigParser {
 					// If the number could not be parsed as long, try to parse it as double.
 					try {
 						double doubleValue = Double.parseDouble(numberStr);
-						return new ConfigDouble(fullName, doubleValue);
+						return new ConfigDouble(fullName, doubleValue, "number");
 					} catch (NumberFormatException e) {
 						throw new ConfigError("Could not parse JSON number" + (fullName.isEmpty() ? "" : " for '" + fullName + "'"), e);
 					}
 				}
 				case FALSE: {
 					reader.readFalse();
-					return new ConfigBoolean(fullName, false);
+					return new ConfigBoolean(fullName, false, "boolean");
 				}
 				case TRUE: {
 					reader.readTrue();
-					return new ConfigBoolean(fullName, true);
+					return new ConfigBoolean(fullName, true, "boolean");
 				}
 				case NULL: {
 					reader.readNull();
@@ -63,13 +63,13 @@ class JSONConfigParser {
 					ArrayList<ConfigElement> elements = new ArrayList<>();
 					reader.enterArray();
 					while (reader.nextEntry()) {
-						ConfigElement e = read(reader, fullName + "["+elements.size()+"]");
+						ConfigElement e = read(reader, (fullName.isEmpty() ? "" : fullName + ".") + elements.size());
 						if (e != null) {
 							elements.add(e);
 						}
 					}
 					reader.exitArray();
-					return new ConfigList(fullName, elements);
+					return new ConfigList(fullName, elements, "array");
 				}
 				case OBJECT: {
 					HashMap<String, ConfigElement> map = new HashMap<>();
@@ -82,7 +82,7 @@ class JSONConfigParser {
 						}
 					}
 					reader.exitObject();
-					return new ConfigObject(fullName, map);
+					return new ConfigObject(fullName, map, "object");
 				}
 				case INVALID: {
 					throw new ConfigError(msgReadError(null, fullName) + ": Invalid JSON");
