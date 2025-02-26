@@ -14,6 +14,11 @@ import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuffer;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerGrammar;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerOption;
 
+/**
+ * A parser for TOML-like configuration files.
+ * This implementation contains some extensions to the TOML specification, like multi-line inline tables.
+ * All input that is valid TOML according to the TOML specification should be handled correctly.
+ */
 class TOMLConfigParser {
 	private static final LexicalSymbolSet<Context> symbolSet = LexicalSymbolSet.createDefault();
 	static {
@@ -45,7 +50,6 @@ class TOMLConfigParser {
 		});
 		grammar.add("LINESTART -> KEY '=' VALUE LINEEND").withIntermediateEvent(1, (t, context) -> {
 			context.key = context.keyBuffer();
-			context.value = null;
 		});
 		grammar.add("LINESTART ->"); // Final state
 		
@@ -137,7 +141,7 @@ class TOMLConfigParser {
 		grammar.add("HEX ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 16);
-				context.value = context.insertIntValue(value);
+				context.insertIntValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -149,7 +153,7 @@ class TOMLConfigParser {
 		grammar.add("OCT ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 8);
-				context.value = context.insertIntValue(value);
+				context.insertIntValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -161,7 +165,7 @@ class TOMLConfigParser {
 		grammar.add("BIN ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseUnsignedLong(context.flushBuffer(), 2);
-				context.value = context.insertIntValue(value);
+				context.insertIntValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -171,17 +175,17 @@ class TOMLConfigParser {
 		grammar.add("NUMBER -> '0.' digit FLOAT").withEvent(bufferEvent("0.")).withEvent(bufferEvent(3));
 		grammar.add("NUMBER -> sign '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
 		grammar.add("NUMBER -> '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
-		grammar.add("NUMBER -> sign '0'").withEvent((t, context) -> context.value = context.insertIntValue(0L));
-		grammar.add("NUMBER -> '0'").withEvent((t, context) -> context.value = context.insertIntValue(0L));
+		grammar.add("NUMBER -> sign '0'").withEvent((t, context) -> context.insertIntValue(0L));
+		grammar.add("NUMBER -> '0'").withEvent((t, context) -> context.insertIntValue(0L));
 		grammar.add("NUMBER -> sign nonzero_digit DEC").withEvent(bufferEvent(0)).withEvent(bufferEvent(1));
 		grammar.add("NUMBER -> nonzero_digit DEC").withEvent(bufferEvent(0));
 		
-		grammar.add("NUMBER -> '+inf'").withEvent((t, context) -> context.value = context.insertDoubleValue(Double.POSITIVE_INFINITY));
-		grammar.add("NUMBER -> '-inf'").withEvent((t, context) -> context.value = context.insertDoubleValue(Double.NEGATIVE_INFINITY));
-		grammar.add("NUMBER -> 'inf'").withEvent((t, context) -> context.value = context.insertDoubleValue(Double.POSITIVE_INFINITY));
+		grammar.add("NUMBER -> '+inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY));
+		grammar.add("NUMBER -> '-inf'").withEvent((t, context) -> context.insertDoubleValue(Double.NEGATIVE_INFINITY));
+		grammar.add("NUMBER -> 'inf'").withEvent((t, context) -> context.insertDoubleValue(Double.POSITIVE_INFINITY));
 		
-		grammar.add("NUMBER -> sign 'nan'").withEvent((t, context) -> context.value = context.insertDoubleValue(Double.NaN));
-		grammar.add("NUMBER -> 'nan'").withEvent((t, context) -> context.value = context.insertDoubleValue(Double.NaN));
+		grammar.add("NUMBER -> sign 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN));
+		grammar.add("NUMBER -> 'nan'").withEvent((t, context) -> context.insertDoubleValue(Double.NaN));
 		
 		grammar.add("DEC -> digit THIS").withEvent(bufferEvent(0));
 		grammar.add("DEC -> '_' digit THIS").withEvent(bufferEvent(1)); // Underscores must be surrounded by digits
@@ -191,7 +195,7 @@ class TOMLConfigParser {
 		grammar.add("DEC ->").withEvent((t, context) -> {
 			try {
 				long value = Long.parseLong(context.flushBuffer());
-				context.value = context.insertIntValue(value);
+				context.insertIntValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -204,7 +208,7 @@ class TOMLConfigParser {
 		grammar.add("FLOAT ->").withEvent((t, context) -> {
 			try {
 				double value = Double.parseDouble(context.flushBuffer());
-				context.value = context.insertDoubleValue(value);
+				context.insertDoubleValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -215,7 +219,7 @@ class TOMLConfigParser {
 		grammar.add("EXP ->").withEvent((t, context) -> {
 			try {
 				double value = Double.parseDouble(context.flushBuffer());
-				context.value = context.insertDoubleValue(value);
+				context.insertDoubleValue(value);
 			} catch (NumberFormatException e) {
 				throw new CompilerException(e);
 			}
@@ -230,7 +234,6 @@ class TOMLConfigParser {
 		grammar.enableLookAhead("ARRAY");
 		grammar.add("ARRAY -> '[' INNER_ARRAY").withEvent((t, context) -> context.list = context.insertNewList());
 		grammar.add("INNER_ARRAY -> ']'").withEvent((t, context) -> {
-			context.value = context.list;
 			context.list = null;
 		});
 		grammar.add("INNER_ARRAY -> space THIS");
@@ -250,7 +253,7 @@ class TOMLConfigParser {
 			context.inlineTables.addFirst(context.insertNewObject());
 		});
 		grammar.add("INNER_INLINE_TABLE -> '}'").withEvent((t, context) -> {
-			context.value = context.inlineTables.removeFirst();
+			context.inlineTables.removeFirst();
 		});
 		grammar.add("INNER_INLINE_TABLE -> space THIS");
 		grammar.add("INNER_INLINE_TABLE -> ',' THIS");
@@ -258,24 +261,59 @@ class TOMLConfigParser {
 		grammar.add("INNER_INLINE_TABLE -> COMMENT THIS");
 		grammar.add("INNER_INLINE_TABLE -> KEY '=' VALUE THIS").withIntermediateEvent(1, (t, context) -> {
 			context.key = context.keyBuffer();
-			context.value = null;
 		});
 		
 		
+		// --- Date-Time ---
+		
+		grammar.enableLookAhead("DATE_TIME");
+		grammar.add("DATE_TIME -> digit digit digit digit '-' digit digit '-' digit digit TIME_APPENDIX")
+			.withEvent(clearBufferEvent())
+			.withEvent((t, context) -> {
+				context.buffer(new String(t, 0, "yyyy-mm-dd".length()));
+			});
+		grammar.add("DATE_TIME -> TIME").withEvent(clearBufferEvent());
+		
+		grammar.add("TIME_APPENDIX -> `T` TIME TIME_OFFSET").withEvent(bufferEvent('T'));
+		grammar.add("TIME_APPENDIX -> space [digit] TIME TIME_OFFSET").withEvent(bufferEvent('T'));
+		// There is no TIME_APPENDIX if there are multiple spaces without a digit (coming from the TIME).
+		// There may be spaces after a DATE_TIME that should be ignored.
+		grammar.add("TIME_APPENDIX ->");
+		
+		grammar.enableLookAhead("TIME");
+		grammar.add("TIME -> digit digit ':' digit digit ':' digit digit TIME_SEC_FRACTION").withEvent((t, context) -> {
+			context.buffer(new String(t, 0, "hh:mm:ss".length()));
+		});
+		
+		grammar.add("TIME_SEC_FRACTION -> '.' digit TIME_SEC_FRACTION_LOOP").withEvent(bufferEvent(0)).withEvent(bufferEvent(1));
+		grammar.add("TIME_SEC_FRACTION ->");
+		grammar.add("TIME_SEC_FRACTION_LOOP -> digit THIS").withEvent(bufferEvent(0));
+		grammar.add("TIME_SEC_FRACTION_LOOP ->");
+		
+		grammar.add("TIME_OFFSET -> `Z`").withEvent(bufferEvent('Z'));
+		grammar.add("TIME_OFFSET -> sign digit digit ':' digit digit").withEvent((t, context) -> {
+			context.buffer(new String(t, 0, "+00:00".length()));
+		});
+		grammar.add("TIME_OFFSET ->");
+		
+		// --- VALUE ---
 		
 		grammar.add("VALUE -> space THIS");
 		grammar.add("VALUE -> 'true'").withEvent((t, context) -> {
-			context.value = context.insertBooleanValue(true);
+			context.insertBooleanValue(true);
 		});
 		grammar.add("VALUE -> 'false'").withEvent((t, context) -> {
-			context.value = context.insertBooleanValue(false);
+			context.insertBooleanValue(false);
 		});
-		// TODO Date, Time, ...
+		grammar.add("VALUE -> DATE_TIME :VOID:").withPostEvent((t, context) -> {
+			// Date/Time values are represented as a string value.
+			context.insertStringValue(context.flushBuffer());
+		});
 		grammar.add("VALUE -> INLINE_TABLE");
 		grammar.add("VALUE -> ARRAY");
 		grammar.add("VALUE -> NUMBER");
 		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
-			context.value = context.insertStringValue(context.flushBuffer());
+			context.insertStringValue(context.flushBuffer());
 		});
 	}
 	
@@ -290,7 +328,6 @@ class TOMLConfigParser {
 		private ArrayDeque<ConfigObjectBuilder> inlineTables = new ArrayDeque<>();
 		
 		private String[] key = null;
-		private ConfigElementBuilder value = null;
 		
 		
 		public String[] keyBuffer() {
