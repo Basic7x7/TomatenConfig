@@ -2,6 +2,12 @@ package dev.tomaten.config;
 
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
@@ -242,6 +248,74 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	public ConfigValue<Boolean> getBoolean(int index) {
 		return this.get(index, ConfigElement::getBoolean);
 	}
+	
+	
+	
+	private static final ConfigElementTransformer<ZonedDateTime> DATE_TIME_TRANSFORMER = element -> {
+		String str = element.getString();
+		try {
+			return DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.systemDefault()).parse(str, ZonedDateTime::from);
+		} catch (DateTimeParseException e) {
+			throw new ConfigError(e);
+		}
+	};
+	
+	public ConfigValue<ZonedDateTime> getDateTime() {
+		return this.get(DATE_TIME_TRANSFORMER);
+	}
+	
+	public ConfigValue<ZonedDateTime> getDateTime(String name) {
+		return this.get(name, DATE_TIME_TRANSFORMER);
+	}
+	
+	public ConfigValue<ZonedDateTime> getDateTime(int index) {
+		return this.get(index, DATE_TIME_TRANSFORMER);
+	}
+	
+	
+	private static final ConfigElementTransformer<LocalDate> LOCAL_DATE_TRANSFORMER = element -> {
+		String str = element.getString();
+		try {
+			return DateTimeFormatter.ISO_LOCAL_DATE.parse(str, LocalDate::from);
+		} catch (DateTimeParseException e) {
+			throw new ConfigError(e);
+		}
+	};
+	
+	public ConfigValue<LocalDate> getLocalDate() {
+		return this.get(LOCAL_DATE_TRANSFORMER);
+	}
+	
+	public ConfigValue<LocalDate> getLocalDate(String name) {
+		return this.get(name, LOCAL_DATE_TRANSFORMER);
+	}
+	
+	public ConfigValue<LocalDate> getLocalDate(int index) {
+		return this.get(index, LOCAL_DATE_TRANSFORMER);
+	}
+	
+	
+	private static final ConfigElementTransformer<LocalTime> LOCAL_TIME_TRANSFORMER = element -> {
+		String str = element.getString();
+		try {
+			return DateTimeFormatter.ISO_LOCAL_TIME.parse(str, LocalTime::from);
+		} catch (DateTimeParseException e) {
+			throw new ConfigError(e);
+		}
+	};
+	
+	public ConfigValue<LocalTime> getLocalTime() {
+		return this.get(LOCAL_TIME_TRANSFORMER);
+	}
+	
+	public ConfigValue<LocalTime> getLocalTime(String name) {
+		return this.get(name, LOCAL_TIME_TRANSFORMER);
+	}
+	
+	public ConfigValue<LocalTime> getLocalTime(int index) {
+		return this.get(index, LOCAL_TIME_TRANSFORMER);
+	}
+	
 	
 	
 	@Override
