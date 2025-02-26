@@ -240,6 +240,28 @@ class TOMLConfigParser {
 		grammar.add("INNER_ARRAY -> VALUE THIS");
 		
 		
+		// --- Inline Tables ---
+		
+		// Note: This implementation allows multiple commas directly following each other, a trailing comma and line breaks.
+		// This allows to specify key-value pairs in multiple lines without a separating comma.
+		// This doesn't match the TOML spec, but all valid TOML inline tables are also valid for this implementation.
+		grammar.enableLookAhead("INLINE_TABLE");
+		grammar.add("INLINE_TABLE -> '{' INNER_INLINE_TABLE").withEvent((t, context) -> {
+			context.inlineTables.addFirst(context.insertNewObject());
+		});
+		grammar.add("INNER_INLINE_TABLE -> '}'").withEvent((t, context) -> {
+			context.value = context.inlineTables.removeFirst();
+		});
+		grammar.add("INNER_INLINE_TABLE -> space THIS");
+		grammar.add("INNER_INLINE_TABLE -> ',' THIS");
+		grammar.add("INNER_INLINE_TABLE -> :NEWLINE: THIS");
+		grammar.add("INNER_INLINE_TABLE -> COMMENT THIS");
+		grammar.add("INNER_INLINE_TABLE -> KEY '=' VALUE THIS").withIntermediateEvent(1, (t, context) -> {
+			context.key = context.keyBuffer();
+			context.value = null;
+		});
+		
+		
 		
 		grammar.add("VALUE -> space THIS");
 		grammar.add("VALUE -> 'true'").withEvent((t, context) -> {
@@ -248,7 +270,8 @@ class TOMLConfigParser {
 		grammar.add("VALUE -> 'false'").withEvent((t, context) -> {
 			context.value = context.insertBooleanValue(false);
 		});
-		// TODO Inline Table, ...
+		// TODO Date, Time, ...
+		grammar.add("VALUE -> INLINE_TABLE");
 		grammar.add("VALUE -> ARRAY");
 		grammar.add("VALUE -> NUMBER");
 		grammar.add("VALUE -> STRING :VOID:").withPostEvent((t, context) -> {
@@ -264,6 +287,7 @@ class TOMLConfigParser {
 		
 		private ConfigObjectBuilder table = this.rootTable;
 		private ConfigListBuilder list = null;
+		private ArrayDeque<ConfigObjectBuilder> inlineTables = new ArrayDeque<>();
 		
 		private String[] key = null;
 		private ConfigElementBuilder value = null;
@@ -279,54 +303,63 @@ class TOMLConfigParser {
 		}
 		
 		
-		public ConfigElementBuilder insertStringValue(String value) throws CompilerException {
+		private static interface ListElementInserter<R extends ConfigElementBuilder, V> {
+			public R insert(ConfigListBuilder list, V value) throws CompilerException;
+		}
+		
+		private static interface ObjectElementInserter<R extends ConfigElementBuilder, V> {
+			public R insert(ConfigObjectBuilder object, String[] key, V value) throws CompilerException;
+		}
+		
+		private <R extends ConfigElementBuilder, V> R insert(V value,
+				ListElementInserter<R, V> listInserter, ObjectElementInserter<R, V> objectInserter) throws CompilerException {
 			if (this.list != null) {
-				return this.list.addString(value);
+				return listInserter.insert(this.list, value);
 			}
 			if (this.key == null) {
-				throw new CompilerException("No key found to insert the string value");
+				throw new CompilerException("No key found to insert the value");
 			}
-			return this.table.setString(this.key, value);
+			ConfigObjectBuilder table = this.inlineTables.peekFirst();
+			if (table == null) {
+				table = this.table;
+			}
+			return objectInserter.insert(table, this.key, value);
+		}
+		
+		public ConfigElementBuilder insertStringValue(String value) throws CompilerException {
+			return this.insert(value,
+					(list, val) -> list.addString(val),
+					(obj, key, val) -> obj.setString(key, val));
 		}
 		
 		public ConfigElementBuilder insertBooleanValue(boolean value) throws CompilerException {
-			if (this.list != null) {
-				return this.list.addBoolean(value);
-			}
-			if (this.key == null) {
-				throw new CompilerException("No key found to insert the boolean value");
-			}
-			return this.table.setBoolean(this.key, value);
+			return this.insert(value,
+					(list, val) -> list.addBoolean(val),
+					(obj, key, val) -> obj.setBoolean(key, val));
 		}
 		
 		public ConfigElementBuilder insertIntValue(long value) throws CompilerException {
-			if (this.list != null) {
-				return this.list.addInt(value);
-			}
-			if (this.key == null) {
-				throw new CompilerException("No key found to insert the int value");
-			}
-			return this.table.setInt(this.key, value);
+			return this.insert(value,
+					(list, val) -> list.addInt(val),
+					(obj, key, val) -> obj.setInt(key, val));
 		}
 		
 		public ConfigElementBuilder insertDoubleValue(double value) throws CompilerException {
-			if (this.list != null) {
-				return this.list.addDouble(value);
-			}
-			if (this.key == null) {
-				throw new CompilerException("No key found to insert the double value");
-			}
-			return this.table.setDouble(this.key, value);
+			return this.insert(value,
+					(list, val) -> list.addDouble(val),
+					(obj, key, val) -> obj.setDouble(key, val));
 		}
 		
 		public ConfigListBuilder insertNewList() throws CompilerException {
-			if (this.list != null) {
-				return this.list.addList();
-			}
-			if (this.key == null) {
-				throw new CompilerException("No key found to insert the list");
-			}
-			return this.table.createList(this.key);
+			return this.insert(null,
+					(list, val) -> list.addList(),
+					(obj, key, val) -> obj.createList(key));
+		}
+		
+		public ConfigObjectBuilder insertNewObject() throws CompilerException {
+			return this.insert(null,
+					(list, val) -> list.addObject(),
+					(obj, key, val) -> obj.createObject(key));
 		}
 	}
 	
