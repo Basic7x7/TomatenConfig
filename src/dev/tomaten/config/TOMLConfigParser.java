@@ -35,6 +35,7 @@ class TOMLConfigParser {
 		grammar.add("COMMENT -> :NEWLINE:");
 		grammar.add("INNER_COMMENT -> any THIS");
 		grammar.add("INNER_COMMENT -> :NEWLINE:");
+		grammar.add("INNER_COMMENT ->"); // end of input
 		
 		
 		grammar.add("LINESTART -> space THIS");
@@ -117,7 +118,7 @@ class TOMLConfigParser {
 		grammar.add("ML_BASIC_STRING -> '\\' :ESCAPE: THIS");
 		grammar.add("ML_BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> ''''' :NEWLINE: ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
+		grammar.add("STRING -> ''''' ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
 		grammar.add("ML_LITERAL_STRING_START -> :NEWLINE: ML_LITERAL_STRING"); // Ignore first direct line break
 		grammar.add("ML_LITERAL_STRING_START -> ML_LITERAL_STRING");
 		
@@ -177,7 +178,11 @@ class TOMLConfigParser {
 		});
 		
 		grammar.add("NUMBER -> sign '0.' digit FLOAT").withEvent(bufferEvent(0)).withEvent(bufferEvent("0.")).withEvent(bufferEvent(3));
-		grammar.add("NUMBER -> '0.' digit FLOAT").withEvent(bufferEvent("0.")).withEvent(bufferEvent(3));
+		grammar.add("NUMBER -> '0.' digit FLOAT").withEvent(bufferEvent("0.")).withEvent(bufferEvent(2));
+		grammar.add("NUMBER -> '0e' sign digit EXP").withEvent(bufferEvent("0e")).withEvent(bufferEvent(2)).withEvent(bufferEvent(3));
+		grammar.add("NUMBER -> '0e' digit EXP").withEvent(bufferEvent("0e")).withEvent(bufferEvent(2));
+		grammar.add("NUMBER -> sign '0e' sign digit EXP").withEvent((t, context) -> context.buffer(new String(t, 0, 5)));
+		grammar.add("NUMBER -> sign '0e' digit EXP").withEvent((t, context) -> context.buffer(new String(t, 0, 4)));
 		grammar.add("NUMBER -> sign '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
 		grammar.add("NUMBER -> '0' digit").withEvent(PrefixLexerContext.errorEvent("Decimal numbers must not start with a leading zero"));
 		grammar.add("NUMBER -> sign '0'").withEvent((t, context) -> context.insertIntValue(0L).setOriginalType("integer"));
@@ -240,11 +245,14 @@ class TOMLConfigParser {
 		grammar.add("ARRAY -> '[' INNER_ARRAY").withEvent((t, context) -> {
 			ConfigListBuilder list = context.insertNewList();
 			list.setOriginalType("array");
-			context.list = list;
+			context.inlineStack.addFirst(list);
 		});
 		grammar.add("INNER_ARRAY -> ']'").withEvent((t, context) -> {
-			context.list.close();
-			context.list = null;
+			ConfigElementBuilder removed = context.inlineStack.removeFirst();
+			if (!(removed instanceof ConfigListBuilder)) {
+				throw new CompilerException("Invalid state: Array closed, but " + removed + " was found");
+			}
+			removed.close();
 		});
 		grammar.add("INNER_ARRAY -> space THIS");
 		grammar.add("INNER_ARRAY -> ',' THIS");
@@ -262,11 +270,14 @@ class TOMLConfigParser {
 		grammar.add("INLINE_TABLE -> '{' INNER_INLINE_TABLE").withEvent((t, context) -> {
 			ConfigObjectBuilder obj = context.insertNewObject();
 			obj.setOriginalType("table-inline");
-			context.inlineTables.addFirst(obj);
+			context.inlineStack.addFirst(obj);
 		});
 		grammar.add("INNER_INLINE_TABLE -> '}'").withEvent((t, context) -> {
-			ConfigObjectBuilder obj = context.inlineTables.removeFirst();
-			obj.close();
+			ConfigElementBuilder removed = context.inlineStack.removeFirst();
+			if (!(removed instanceof ConfigObjectBuilder)) {
+				throw new CompilerException("Invalid state: Inline-Table closed, but " + removed + " was found");
+			}
+			removed.close();
 		});
 		grammar.add("INNER_INLINE_TABLE -> space THIS");
 		grammar.add("INNER_INLINE_TABLE -> ',' THIS");
@@ -311,11 +322,11 @@ class TOMLConfigParser {
 		grammar.add("TIME_SEC_FRACTION_LOOP ->");
 		
 		grammar.add("TIME_OFFSET -> `Z`").withEvent(bufferEvent('Z')).withEvent((t, context) -> {
-			context.originalTypeBuf = "datetime-offset";
+			context.originalTypeBuf = "datetime";
 		});
 		grammar.add("TIME_OFFSET -> sign digit digit ':' digit digit").withEvent((t, context) -> {
 			context.buffer(new String(t, 0, "+00:00".length()));
-			context.originalTypeBuf = "datetime-offset";
+			context.originalTypeBuf = "datetime";
 		});
 		grammar.add("TIME_OFFSET ->");
 		
@@ -348,8 +359,7 @@ class TOMLConfigParser {
 		private final ConfigObjectBuilder rootTable = new ConfigObjectBuilder(null, "");
 		
 		private ConfigObjectBuilder table = this.rootTable;
-		private ConfigListBuilder list = null;
-		private ArrayDeque<ConfigObjectBuilder> inlineTables = new ArrayDeque<>();
+		private ArrayDeque<ConfigElementBuilder> inlineStack = new ArrayDeque<>();
 		
 		private String[] key = null;
 		
@@ -376,15 +386,16 @@ class TOMLConfigParser {
 		
 		private <R extends ConfigElementBuilder, V> R insert(V value,
 				ListElementInserter<R, V> listInserter, ObjectElementInserter<R, V> objectInserter) throws CompilerException {
-			if (this.list != null) {
-				return listInserter.insert(this.list, value);
+			ConfigElementBuilder inline = this.inlineStack.peekFirst();
+			if (inline instanceof ConfigListBuilder) {
+				return listInserter.insert((ConfigListBuilder) inline, value);
 			}
 			if (this.key == null) {
 				throw new CompilerException("No key found to insert the value");
 			}
-			ConfigObjectBuilder table = this.inlineTables.peekFirst();
-			if (table == null) {
-				table = this.table;
+			ConfigObjectBuilder table = this.table;
+			if (inline instanceof ConfigObjectBuilder) {
+				table = (ConfigObjectBuilder) inline;
 			}
 			return objectInserter.insert(table, this.key, value);
 		}
