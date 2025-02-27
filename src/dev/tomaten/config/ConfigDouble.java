@@ -24,6 +24,16 @@ class ConfigDouble extends ConfigElement {
 	}
 	
 	@Override
+	public String getString() throws ConfigError {
+		return String.valueOf(this.value);
+	}
+	
+	@Override
+	public String getStringOrDefault(String defaultValue) {
+		return String.valueOf(this.value);
+	}
+	
+	@Override
 	public String toString() {
 		return super.toString() + "=" + this.value;
 	}

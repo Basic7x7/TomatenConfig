@@ -3,16 +3,12 @@ package dev.tomaten.config;
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalQueries;
 import java.util.Collection;
 import java.util.Iterator;
@@ -108,6 +104,10 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		return element != null ? element.getType() : null;
 	}
 	
+	public String getOriginalType() {
+		return this.data.getOriginalType();
+	}
+	
 	
 	public Collection<String> getKeys() {
 		return this.data.getKeys();
@@ -178,6 +178,10 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
+	public ConfigValue<Self> getObject() {
+		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
+	}
+	
 	public ConfigValue<Self> getObject(String name) {
 		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
@@ -186,6 +190,10 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
+	
+	public ConfigValue<Self> getList() {
+		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
+	}
 	
 	public ConfigValue<Self> getList(String name) {
 		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));

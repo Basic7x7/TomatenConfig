@@ -19,6 +19,16 @@ class ConfigBoolean extends ConfigElement {
 	}
 	
 	@Override
+	public String getString() throws ConfigError {
+		return this.value ? "true" : "false";
+	}
+	
+	@Override
+	public String getStringOrDefault(String defaultValue) {
+		return this.value ? "true" : "false";
+	}
+	
+	@Override
 	public Type getType() {
 		return Type.BOOLEAN;
 	}
