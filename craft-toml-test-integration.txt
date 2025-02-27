@@ -1,0 +1,10 @@
+java-version 8
+
+include "../CompilerLib/"
+include "../TomatenJSON/"
+include "../TomatenUtil/"
+
++ src
+junit dev/tomaten/config/test
+
+manifest Main-Class "dev.tomaten.config.testtoml.TOMLTestIntegration"

@@ -1,4 +1,4 @@
-package dev.tomaten.config.test;
+package dev.tomaten.config.testtoml;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,7 +9,6 @@ import dev.tomaten.config.Config;
 import dev.tomaten.config.ConfigError;
 import dev.tomaten.config.ConfigType;
 import dev.tomaten.config.TomatenConfig;
-import dev.tomaten.json.JSONWriter;
 import dev.tomaten.json.generic.JSONArray;
 import dev.tomaten.json.generic.JSONElement;
 import dev.tomaten.json.generic.JSONObject;
@@ -29,15 +28,11 @@ class TOMLTestIntegration {
 			return;
 		}
 		
-		
 		try {
-			// Convert the parsed config into a JSON representation
+			// Convert the parsed config into a JSON representation and print it to System.out
 			JSONElement json = toJSON(config);
-			
-			// Write the JSON to System.out
-			JSONWriter writer = new JSONWriter(System.out);
-			writer.write(json);
-		} catch (IOException e) {
+			System.out.println(json);
+		} catch (ConfigError e) {
 			e.printStackTrace();
 			System.exit(1);
 			return;
@@ -46,7 +41,7 @@ class TOMLTestIntegration {
 		System.exit(0);
 	}
 	
-	private static JSONElement toJSON(Config config) {
+	private static JSONElement toJSON(Config config) throws ConfigError {
 		switch (config.getType()) {
 			case OBJECT: {
 				JSONObject obj = new JSONObject();

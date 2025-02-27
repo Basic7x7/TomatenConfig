@@ -1,0 +1,9 @@
+java-version 8
+
+depend "../CompilerLib/"
+depend "../TomatenJSON/"
+depend "../TomatenUtil/"
+
++ src
+junit dev/tomaten/config/test
+- dev/tomaten/config/testtoml
