@@ -20,6 +20,8 @@ import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerOption;
  * All input that is valid TOML according to the TOML specification should be handled correctly.
  */
 class TOMLConfigParser {
+	private static final Object MARKER_TABLE_DEFINED = new Object();
+	
 	private static final LexicalSymbolSet<Context> symbolSet = LexicalSymbolSet.createDefault();
 	static {
 		symbolSet.add("key", (c, context) -> ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
@@ -50,7 +52,14 @@ class TOMLConfigParser {
 		});
 		grammar.add("LINESTART -> '[' KEY ']' LINEEND").withPostEvent((t, context) -> {
 			context.key = context.keyBuffer();
-			ConfigObjectBuilder obj = context.rootTable.createObject(context.key);
+			ConfigObjectBuilder obj = context.rootTable.createOrGetObject(context.key);
+			if (obj.isClosed()) {
+				throw new CompilerException("Table '" + obj.getFullKey() + "' cannot be modified");
+			}
+			if (obj.isMarkerSet(MARKER_TABLE_DEFINED)) {
+				throw new CompilerException("Table '" + obj.getFullKey() + "' specified multiple times");
+			}
+			obj.setMarker(MARKER_TABLE_DEFINED);
 			obj.setOriginalType("table");
 			context.table = obj;
 		});

@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import dev.tomaten.json.generic.JSONElement;
+
 public abstract class ConfigElement {
 	private final String fullName;
 	private final String originalType;
@@ -115,6 +117,8 @@ public abstract class ConfigElement {
 	public String toString() {
 		return this.fullName + "[" + this.getType().name() + (this.originalType != null ? "/" + this.originalType : "") + "]";
 	}
+	
+	public abstract JSONElement toJSON();
 	
 	
 	public enum Type {

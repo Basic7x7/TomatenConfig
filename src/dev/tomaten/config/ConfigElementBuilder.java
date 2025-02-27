@@ -1,16 +1,21 @@
 package dev.tomaten.config;
 
+import java.util.HashSet;
+import java.util.Set;
+
 abstract class ConfigElementBuilder {
 	private final ConfigElementBuilder parent;
 	private final String key;
-	private boolean closed;
+	private final Set<Object> markers;
 	private String originalType;
+	private boolean closed;
 	
 	protected ConfigElementBuilder(ConfigElementBuilder parent, String key) {
 		this.parent = parent;
 		this.key = key;
-		this.closed = false;
+		this.markers = new HashSet<>();
 		this.originalType = null;
+		this.closed = false;
 	}
 	
 	public ConfigElementBuilder getParent() {
@@ -44,6 +49,14 @@ abstract class ConfigElementBuilder {
 	
 	public abstract ConfigElement toElement();
 	
+	public ConfigElementBuilder setMarker(Object marker) {
+		this.markers.add(marker);
+		return this;
+	}
+	
+	public boolean isMarkerSet(Object marker) {
+		return this.markers.contains(marker);
+	}
 	
 	public void close() {
 		this.closed = true;

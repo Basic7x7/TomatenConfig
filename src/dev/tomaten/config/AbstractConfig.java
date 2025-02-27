@@ -16,6 +16,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 import dev.tomaten.config.ConfigElement.Type;
+import dev.tomaten.json.generic.JSONElement;
 
 public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implements Iterable<Self> {
 	private Supplier<Self> factory;
@@ -30,12 +31,12 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		this.data = data;
 	}
 	
-	protected ConfigElement getData() {
+	public ConfigElement getData() {
 		return this.data;
 	}
 	
 	
-	protected ConfigElement navigate(String name, boolean allowNull) throws ConfigError {
+	protected ConfigElement navigate(String name, boolean allowNull, boolean interpretDots) throws ConfigError {
 		requireNotNull(name, "The name ...");
 		ConfigElement current = this.data;
 		int n = name.length();
@@ -50,9 +51,18 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 						" is " + current.getType().toString());
 			}
 			
-			end = name.indexOf('.', start);
-			int partEnd = end >= 0 ? end : n;
-			String namePart = name.substring(start, partEnd);
+			int partEnd;
+			String namePart;
+			if (interpretDots) {
+				end = name.indexOf('.', start);
+				partEnd = end >= 0 ? end : n;
+				namePart = name.substring(start, partEnd);
+			}
+			else {
+				end = -1;
+				partEnd = n;
+				namePart = name;
+			}
 			
 			current = current.getOrNull(namePart);
 			if (current == null) {
@@ -95,7 +105,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	public Type getType(String name) {
-		ConfigElement element = this.navigate(name, true);
+		ConfigElement element = this.navigate(name, true, true); // no throw error, may be null, interpret dots
 		return element != null ? element.getType() : null;
 	}
 	
@@ -138,9 +148,29 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	public <V> ConfigValue<V> get(String name, ConfigElementTransformer<V> transformer) {
+		return this.getImpl(name, true, transformer);
+	}
+	
+	public <V> ConfigValue<V> get(String name, ConfigTransformer<? super Self, V> transformer) {
+		return this.getImpl(name, true, configTransformerWrapper(transformer));
+	}
+	
+	public ConfigValue<Self> getDirect(String name) {
+		return this.getImpl(name, false, element -> this.newSubConfig(element));
+	}
+	
+	public <V> ConfigValue<V> getDirect(String name, ConfigElementTransformer<V> transformer) {
+		return this.getImpl(name, false, transformer);
+	}
+	
+	public <V> ConfigValue<V> getDirect(String name, ConfigTransformer<? super Self, V> transformer) {
+		return this.getImpl(name, false, configTransformerWrapper(transformer));
+	}
+	
+	private <V> ConfigValue<V> getImpl(String name, boolean interpretDots, ConfigElementTransformer<V> transformer) {
 		ConfigElement element = null;
 		try {
-			element = this.navigate(name, false);
+			element = this.navigate(name, false, interpretDots); // not null, throws error
 			V value = transformer != null ? transformer.transform(element) : null;
 			return new ConfigValue<>(value, element.getType(), null);
 		} catch (ConfigError e) {
@@ -148,9 +178,6 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
-	public <V> ConfigValue<V> get(String name, ConfigTransformer<? super Self, V> transformer) {
-		return this.get(name, configTransformerWrapper(transformer));
-	}
 	
 	public <V> ConfigValue<V> get(int index, ConfigElementTransformer<V> transformer) {
 		ConfigElement element = null;
@@ -386,5 +413,9 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	@Override
 	public String toString() {
 		return this.data.toString();
+	}
+	
+	public JSONElement toJSON() {
+		return this.data.toJSON();
 	}
 }

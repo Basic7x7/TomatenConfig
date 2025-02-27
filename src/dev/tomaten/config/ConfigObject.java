@@ -3,8 +3,12 @@ package dev.tomaten.config;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import dev.tomaten.json.generic.JSONElement;
+import dev.tomaten.json.generic.JSONObject;
 
 class ConfigObject extends ConfigElement {
 	private final Map<String, ConfigElement> map;
@@ -44,5 +48,15 @@ class ConfigObject extends ConfigElement {
 	@Override
 	public String toString() {
 		return super.toString() + "={ " + this.map.values().stream().map(e -> e.toString()).collect(Collectors.joining(", ")) + " }";
+	}
+	
+	@Override
+	public JSONElement toJSON() {
+		JSONObject obj = new JSONObject();
+		for (Entry<String, ConfigElement> entry : this.map.entrySet()) {
+			JSONElement element = entry.getValue().toJSON();
+			obj.set(entry.getKey(), element);
+		}
+		return obj;
 	}
 }

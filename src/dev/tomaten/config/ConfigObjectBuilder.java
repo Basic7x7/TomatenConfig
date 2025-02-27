@@ -62,9 +62,31 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		String lastKey = key[key.length-1];
 		ConfigObjectBuilder newObj = new ConfigObjectBuilder(obj, lastKey);
 		if (obj.map.put(lastKey, newObj) != null) {
-			throw new CompilerException("Key does already exist: " + newObj.getFullKey());
+			throw new CompilerException("'" + newObj.getFullKey() + "' does already exist");
 		}
 		return newObj;
+	}
+	
+	public ConfigObjectBuilder createOrGetObject(String... key) throws CompilerException {
+		requireNotClosed();
+		if (key.length <= 0) {
+			throw new CompilerException("No key specified");
+		}
+		ConfigObjectBuilder parentObj = this.navigate(key, key.length-1);
+		String lastKey = key[key.length-1];
+		ConfigElementBuilder element = parentObj.map.get(lastKey);
+		ConfigObjectBuilder obj;
+		if (element == null) {
+			obj = new ConfigObjectBuilder(parentObj, lastKey);
+			parentObj.map.put(lastKey, obj);
+		}
+		else if (element instanceof ConfigObjectBuilder) {
+			obj = (ConfigObjectBuilder) element;
+		}
+		else {
+			throw new CompilerException("'" + element.getFullKey() + "' does already exist, but it is not a table");
+		}
+		return obj;
 	}
 	
 	public ConfigListBuilder createOrGetList(String... key) throws CompilerException {
@@ -142,6 +164,11 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 	public ConfigElementBuilder setDouble(String[] key, double value) throws CompilerException {
 		requireNotClosed();
 		return this.set(key, (parent, k) -> ConfigElementBuilder.ofDouble(parent, k, value));
+	}
+	
+	
+	public int entriesCount() {
+		return this.map.size();
 	}
 	
 	

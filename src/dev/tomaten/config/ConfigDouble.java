@@ -1,5 +1,8 @@
 package dev.tomaten.config;
 
+import dev.tomaten.json.generic.JSONElement;
+import dev.tomaten.json.generic.JSONNumber;
+
 class ConfigDouble extends ConfigElement {
 	private final double value;
 	
@@ -36,5 +39,10 @@ class ConfigDouble extends ConfigElement {
 	@Override
 	public String toString() {
 		return super.toString() + "=" + this.value;
+	}
+	
+	@Override
+	public JSONElement toJSON() {
+		return new JSONNumber(this.value);
 	}
 }

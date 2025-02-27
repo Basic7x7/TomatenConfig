@@ -2,6 +2,9 @@ package dev.tomaten.config;
 
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
+import dev.tomaten.json.generic.JSONElement;
+import dev.tomaten.json.generic.JSONString;
+
 class ConfigString extends ConfigElement {
 	private final String value;
 	
@@ -88,5 +91,10 @@ class ConfigString extends ConfigElement {
 	@Override
 	public String toString() {
 		return super.toString() + "=\"" + this.value.replaceAll("\"", "\\\"") + "\"";
+	}
+	
+	@Override
+	public JSONElement toJSON() {
+		return new JSONString(this.value);
 	}
 }
