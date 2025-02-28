@@ -13,6 +13,7 @@ import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContext;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuffer;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerGrammar;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerOption;
+import de.tomatengames.util.HexUtil;
 
 /**
  * A parser for TOML-like configuration files.
@@ -119,18 +120,20 @@ class TOMLConfigParser {
 		grammar.add("ML_BASIC_STRING_START -> :NEWLINE: ML_BASIC_STRING"); // Ignore first direct line break
 		grammar.add("ML_BASIC_STRING_START -> ML_BASIC_STRING");
 		
+		grammar.add("ML_BASIC_STRING -> '\"\"\"\"\"'").withEvent(bufferEvent("\"\"")); // 2 quote characters + string end
+		grammar.add("ML_BASIC_STRING -> '\"\"\"\"'").withEvent(bufferEvent('"')); // 1 quote character + string end
 		grammar.add("ML_BASIC_STRING -> '\"\"\"'");
 		// Note: The output will contain the system specific line separator. This doesn't exactly comply with the TOML spec.
 		grammar.add("ML_BASIC_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
-		// \<newline> skips the leading spaces in the next line.
-		grammar.add("ML_BASIC_STRING -> '\\' :NEWLINE: :SPACE: THIS").withEvent(bufferEvent(System.lineSeparator()));
-		grammar.add("ML_BASIC_STRING -> '\\' :ESCAPE: THIS");
+		grammar.add("ML_BASIC_STRING -> '\\' ML_ESCAPE THIS");
 		grammar.add("ML_BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
 		grammar.add("STRING -> ''''' ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
 		grammar.add("ML_LITERAL_STRING_START -> :NEWLINE: ML_LITERAL_STRING"); // Ignore first direct line break
 		grammar.add("ML_LITERAL_STRING_START -> ML_LITERAL_STRING");
 		
+		grammar.add("ML_LITERAL_STRING -> '''''''").withEvent(bufferEvent("''")); // 2 quote characters + string end
+		grammar.add("ML_LITERAL_STRING -> ''''''").withEvent(bufferEvent("'")); // 1 quote character + string end
 		grammar.add("ML_LITERAL_STRING -> '''''");
 		grammar.add("ML_LITERAL_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
 		grammar.add("ML_LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
@@ -138,12 +141,49 @@ class TOMLConfigParser {
 		grammar.add("STRING -> '\"' BASIC_STRING").withEvent(clearBufferEvent());
 		grammar.add("BASIC_STRING -> '\"'");
 		// Note: The escape sequences :ESCAPE: provides, don't exactly match these defined by the TOML spec.
-		grammar.add("BASIC_STRING -> '\\' :ESCAPE: THIS");
+		grammar.add("BASIC_STRING -> '\\' BASIC_ESCAPE THIS");
 		grammar.add("BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
 		grammar.add("STRING -> ''' LITERAL_STRING").withEvent(clearBufferEvent());
 		grammar.add("LITERAL_STRING -> '''");
 		grammar.add("LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
+		
+		
+		grammar.add("ML_ESCAPE -> BASIC_ESCAPE");
+		// \<newline> skips all spaces and newlines until the next solid character.
+		grammar.add("ML_ESCAPE -> space :SPACE: :NEWLINE: TRIM_SPACE");
+		grammar.add("ML_ESCAPE -> :NEWLINE: TRIM_SPACE");
+		
+		grammar.add("TRIM_SPACE -> space THIS");
+		grammar.add("TRIM_SPACE -> :NEWLINE: THIS");
+		grammar.add("TRIM_SPACE ->");
+		
+		grammar.enableLookAhead("BASIC_ESCAPE");
+		grammar.add("BASIC_ESCAPE -> 'b'").withEvent(bufferEvent('\b'));
+		grammar.add("BASIC_ESCAPE -> 't'").withEvent(bufferEvent('\t'));
+		grammar.add("BASIC_ESCAPE -> 'n'").withEvent(bufferEvent('\n'));
+		grammar.add("BASIC_ESCAPE -> 'f'").withEvent(bufferEvent('\f'));
+		grammar.add("BASIC_ESCAPE -> 'r'").withEvent(bufferEvent('\r'));
+		grammar.add("BASIC_ESCAPE -> '\"'").withEvent(bufferEvent('"'));
+		grammar.add("BASIC_ESCAPE -> '\\'").withEvent(bufferEvent('\\'));
+		grammar.add("BASIC_ESCAPE -> 'u' hex hex hex hex").withEvent((t, context) -> {
+			try {
+				int codePoint = HexUtil.hexToInt(new String(t, 1, 4));
+				String str = new String(new int[] {codePoint}, 0, 1);
+				context.buffer(str);
+			} catch (IllegalArgumentException e) {
+				throw new CompilerException(e);
+			}
+		});
+		grammar.add("BASIC_ESCAPE -> 'U' hex hex hex hex hex hex hex hex").withEvent((t, context) -> {
+			try {
+				int codePoint = HexUtil.hexToInt(new String(t, 1, 8));
+				String str = new String(new int[] {codePoint}, 0, 1);
+				context.buffer(str);
+			} catch (IllegalArgumentException e) {
+				throw new CompilerException(e);
+			}
+		});
 		
 		
 		// --- Numbers ---
