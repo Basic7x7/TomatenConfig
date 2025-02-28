@@ -19,8 +19,14 @@ import de.tomatengames.util.HexUtil;
 
 /**
  * A parser for TOML-like configuration files.
- * This implementation contains some extensions to the TOML specification, like multi-line inline tables.
+ * This implementation is more relaxed than the TOML specification in some cases.
+ * For example, this implementation is less restrictive with Unicode characters and allows multiple commas as separator.
+ * <p>
  * All input that is valid TOML according to the TOML specification should be handled correctly.
+ * None of the "valid" test cases from the <a href="https://github.com/toml-lang/toml-test">toml-test</a> project should fail.
+ * This can be tested using the TOMLTestIntegration class.
+ * <p>
+ * This implementation also supports the TOML 1.1 preview features as of 2025-02-28.
  */
 class TOMLConfigParser {
 	private static final Object MARKER_TABLE_DEFINED = new Object();
@@ -147,7 +153,6 @@ class TOMLConfigParser {
 		
 		grammar.add("SL_STRING -> '\"' BASIC_STRING").withEvent(clearBufferEvent());
 		grammar.add("BASIC_STRING -> '\"'");
-		// Note: The escape sequences :ESCAPE: provides, don't exactly match these defined by the TOML spec.
 		grammar.add("BASIC_STRING -> '\\' BASIC_ESCAPE THIS");
 		grammar.add("BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
