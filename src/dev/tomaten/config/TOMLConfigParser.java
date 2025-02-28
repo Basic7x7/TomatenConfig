@@ -26,7 +26,19 @@ class TOMLConfigParser {
 	private static final LexicalSymbolSet<Context> symbolSet = LexicalSymbolSet.createDefault();
 	static {
 		symbolSet.add("key", (c, context) -> ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-				('0' <= c && c <= '9') || c == '_' || c == '-');
+				('0' <= c && c <= '9') || c == '_' || c == '-' ||
+				// In TOML 1.1, also some Unicode ranges are allowed for bare keys
+				c == '\u00B2' || c == '\u00B3' || c == '\u00B9' || ('\u00BC' <= c && c <= '\u00BE') ||
+				('\u00C0' <= c && c <= '\u00D6') || ('\u00D8' <= c && c <= '\u00F6') || ('\u00F8' <= c && c <= '\u037D') ||
+				('\u037F' <= c && c <= '\u1FFF') ||
+				('\u200C' <= c && c <= '\u200D') || ('\u203F' <= c && c <= '\u2040') ||
+				('\u2070' <= c && c <= '\u218F') || ('\u2460' <= c && c <= '\u24FF') ||
+				('\u2C00' <= c && c <= '\u2FEF') || ('\u3001' <= c && c <= '\uD7FF') ||
+				('\uF900' <= c && c <= '\uFDCF') || ('\uFDF0' <= c && c <= '\uFFFD') ||
+				// Ignore the range 10000-EFFFF, because a single char cannot represent these.
+				// To be able to use these ranges, all surrogate characters are allowed by this implementation.
+				Character.isSurrogate(c)
+				);
 		symbolSet.add("oct", (c, context) -> '0' <= c && c <= '7');
 		symbolSet.add("sign", (c, context) -> c == '+' || c == '-');
 	}
@@ -104,7 +116,7 @@ class TOMLConfigParser {
 			context.keysBuf.addLast(new StringBuilder());
 			context.keyMustEnd = false;
 		});
-		grammar.add("KEY_ -> STRING :VOID:").withPostEvent((t, context) -> {
+		grammar.add("KEY_ -> SL_STRING :VOID:").withPostEvent((t, context) -> {
 			if (context.keyMustEnd) {
 				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended");
 			}
@@ -115,8 +127,13 @@ class TOMLConfigParser {
 		// --- Strings ---
 		
 		grammar.enableLookAhead("STRING");
+		grammar.add("STRING -> ML_STRING");
+		grammar.add("STRING -> SL_STRING");
 		
-		grammar.add("STRING -> '\"\"\"' ML_BASIC_STRING_START").withEvent(clearBufferEvent()); 
+		grammar.enableLookAhead("ML_STRING");
+		grammar.enableLookAhead("SL_STRING");
+		
+		grammar.add("ML_STRING -> '\"\"\"' ML_BASIC_STRING_START").withEvent(clearBufferEvent());
 		grammar.add("ML_BASIC_STRING_START -> :NEWLINE: ML_BASIC_STRING"); // Ignore first direct line break
 		grammar.add("ML_BASIC_STRING_START -> ML_BASIC_STRING");
 		
@@ -128,7 +145,7 @@ class TOMLConfigParser {
 		grammar.add("ML_BASIC_STRING -> '\\' ML_ESCAPE THIS");
 		grammar.add("ML_BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> ''''' ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
+		grammar.add("ML_STRING -> ''''' ML_LITERAL_STRING_START").withEvent(clearBufferEvent());
 		grammar.add("ML_LITERAL_STRING_START -> :NEWLINE: ML_LITERAL_STRING"); // Ignore first direct line break
 		grammar.add("ML_LITERAL_STRING_START -> ML_LITERAL_STRING");
 		
@@ -138,13 +155,13 @@ class TOMLConfigParser {
 		grammar.add("ML_LITERAL_STRING -> :NEWLINE: THIS").withEvent(bufferEvent(System.lineSeparator()));
 		grammar.add("ML_LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> '\"' BASIC_STRING").withEvent(clearBufferEvent());
+		grammar.add("SL_STRING -> '\"' BASIC_STRING").withEvent(clearBufferEvent());
 		grammar.add("BASIC_STRING -> '\"'");
 		// Note: The escape sequences :ESCAPE: provides, don't exactly match these defined by the TOML spec.
 		grammar.add("BASIC_STRING -> '\\' BASIC_ESCAPE THIS");
 		grammar.add("BASIC_STRING -> any THIS").withEvent(bufferEvent(0));
 		
-		grammar.add("STRING -> ''' LITERAL_STRING").withEvent(clearBufferEvent());
+		grammar.add("SL_STRING -> ''' LITERAL_STRING").withEvent(clearBufferEvent());
 		grammar.add("LITERAL_STRING -> '''");
 		grammar.add("LITERAL_STRING -> any THIS").withEvent(bufferEvent(0));
 		
@@ -164,25 +181,17 @@ class TOMLConfigParser {
 		grammar.add("BASIC_ESCAPE -> 'n'").withEvent(bufferEvent('\n'));
 		grammar.add("BASIC_ESCAPE -> 'f'").withEvent(bufferEvent('\f'));
 		grammar.add("BASIC_ESCAPE -> 'r'").withEvent(bufferEvent('\r'));
+		grammar.add("BASIC_ESCAPE -> 'e'").withEvent(bufferEvent('\u001B'));
 		grammar.add("BASIC_ESCAPE -> '\"'").withEvent(bufferEvent('"'));
 		grammar.add("BASIC_ESCAPE -> '\\'").withEvent(bufferEvent('\\'));
+		grammar.add("BASIC_ESCAPE -> 'x' hex hex").withEvent((t, context) -> {
+			context.bufferHexCodePoint(new String(t, 1, 2));
+		});
 		grammar.add("BASIC_ESCAPE -> 'u' hex hex hex hex").withEvent((t, context) -> {
-			try {
-				int codePoint = HexUtil.hexToInt(new String(t, 1, 4));
-				String str = new String(new int[] {codePoint}, 0, 1);
-				context.buffer(str);
-			} catch (IllegalArgumentException e) {
-				throw new CompilerException(e);
-			}
+			context.bufferHexCodePoint(new String(t, 1, 4));
 		});
 		grammar.add("BASIC_ESCAPE -> 'U' hex hex hex hex hex hex hex hex").withEvent((t, context) -> {
-			try {
-				int codePoint = HexUtil.hexToInt(new String(t, 1, 8));
-				String str = new String(new int[] {codePoint}, 0, 1);
-				context.buffer(str);
-			} catch (IllegalArgumentException e) {
-				throw new CompilerException(e);
-			}
+			context.bufferHexCodePoint(new String(t, 1, 8));
 		});
 		
 		
@@ -364,6 +373,9 @@ class TOMLConfigParser {
 		grammar.add("TIME -> digit digit ':' digit digit ':' digit digit TIME_SEC_FRACTION").withEvent((t, context) -> {
 			context.buffer(new String(t, 0, "hh:mm:ss".length()));
 		});
+		grammar.add("TIME -> digit digit ':' digit digit TIME_SEC_FRACTION").withEvent((t, context) -> {
+			context.buffer(new String(t, 0, "hh:mm".length()));
+		});
 		
 		grammar.add("TIME_SEC_FRACTION -> '.' digit TIME_SEC_FRACTION_LOOP").withEvent(bufferEvent(0)).withEvent(bufferEvent(1));
 		grammar.add("TIME_SEC_FRACTION ->");
@@ -483,6 +495,16 @@ class TOMLConfigParser {
 			return this.insert(null,
 					(list, val) -> list.addObject(),
 					(obj, key, val) -> obj.createObject(key));
+		}
+		
+		public void bufferHexCodePoint(String codePointHex) throws CompilerException {
+			try {
+				int codePoint = HexUtil.hexToInt(codePointHex);
+				String str = new String(new int[] {codePoint}, 0, 1);
+				this.buffer(str);
+			} catch (IllegalArgumentException e) {
+				throw new CompilerException(e);
+			}
 		}
 	}
 	

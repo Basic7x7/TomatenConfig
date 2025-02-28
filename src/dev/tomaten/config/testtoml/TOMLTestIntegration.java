@@ -4,6 +4,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 import dev.tomaten.config.Config;
 import dev.tomaten.config.ConfigError;
@@ -61,7 +65,32 @@ class TOMLTestIntegration {
 			default: {
 				JSONObject obj = new JSONObject();
 				obj.set("type", new JSONString(config.getOriginalType()));
-				String value = config.getString().orError(); // Elemental types can be represented as string
+				String value;
+				switch (config.getOriginalType()) {
+					case "datetime": {
+						ZonedDateTime zdt = config.getDateTime().orError();
+						value = zdt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+						break;
+					}
+					case "datetime-local": {
+						ZonedDateTime zdt = config.getDateTime().orError();
+						value = zdt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+						break;
+					}
+					case "date-local": {
+						LocalDate date = config.getLocalDate().orError();
+						value = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+						break;
+					}
+					case "time-local": {
+						LocalTime time = config.getLocalTime().orError();
+						value = time.format(DateTimeFormatter.ISO_LOCAL_TIME);
+						break;
+					}
+					default: {
+						value = config.getString().orError(); // Elemental types can be represented as string
+					}
+				}
 				obj.set("value", new JSONString(value));
 				return obj;
 			}
