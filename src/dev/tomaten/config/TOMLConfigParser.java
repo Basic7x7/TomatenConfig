@@ -91,35 +91,23 @@ class TOMLConfigParser {
 		// --- Keys ---
 		
 		grammar.enableLookAhead("KEY");
-		grammar.add("KEY -> KEY_ KEY_LIST").withEvent((t, context) -> {
+		grammar.add("KEY -> KEY_SEGMENT KEY_LIST").withEvent((t, context) -> {
 			context.keysBuf.clear();
-			context.keysBuf.add(new StringBuilder());
-			context.keyMustEnd = false;
+			context.keysBuf.addLast(new StringBuilder());
 		});
 		
-		grammar.add("KEY_LIST -> KEY_ THIS");
+		grammar.add("KEY_LIST -> space THIS");
+		grammar.add("KEY_LIST -> '.' KEY_SEGMENT THIS").withEvent((t, context) -> {
+			context.keysBuf.addLast(new StringBuilder());
+		});
 		grammar.add("KEY_LIST ->");
 		
-		grammar.enableLookAhead("KEY_");
-		grammar.add("KEY_ -> space").withEvent((t, context) -> {
-			if (context.keysBuf.peekLast().length() > 0) {
-				context.keyMustEnd = true;
-			}
-		});
-		grammar.add("KEY_ -> key").withEvent((t, context) -> {
-			if (context.keyMustEnd) {
-				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended");
-			}
-			context.keysBuf.peekLast().append(t[0]);
-		});
-		grammar.add("KEY_ -> '.'").withEvent((t, context) -> {
-			context.keysBuf.addLast(new StringBuilder());
-			context.keyMustEnd = false;
-		});
-		grammar.add("KEY_ -> SL_STRING :VOID:").withPostEvent((t, context) -> {
-			if (context.keyMustEnd) {
-				throw new CompilerException("Key '" + context.keysBuf.peekLast() + "' cannot continue after it has ended");
-			}
+		grammar.enableLookAhead("KEY_SEGMENT");
+		grammar.add("KEY_SEGMENT -> space THIS");
+		grammar.add("KEY_SEGMENT -> key BARE_KEY").withEvent((t, context) -> context.keysBuf.peekLast().append(t[0]));
+		grammar.add("BARE_KEY -> key THIS").withEvent((t, context) -> context.keysBuf.peekLast().append(t[0]));
+		grammar.add("BARE_KEY ->");
+		grammar.add("KEY_SEGMENT -> SL_STRING :VOID:").withPostEvent((t, context) -> {
 			context.keysBuf.peekLast().append(context.flushBuffer());
 		});
 		
@@ -415,7 +403,6 @@ class TOMLConfigParser {
 	
 	private static class Context extends PrefixLexerContextWithBuffer {
 		private final ArrayDeque<StringBuilder> keysBuf = new ArrayDeque<>();
-		private boolean keyMustEnd = false;
 		
 		private final ConfigObjectBuilder rootTable = new ConfigObjectBuilder(null, "");
 		

@@ -24,10 +24,17 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		return new ConfigObject(this.getFullKey(), elementMap, this.getOriginalType());
 	}
 	
-	private ConfigObjectBuilder navigate(String[] keys, int len) throws CompilerException {
+	private ConfigObjectBuilder navigate(String[] keys, int len, boolean wantModify) throws CompilerException {
 		ConfigObjectBuilder obj = this;
 		for (int i = 0; i < len; i++) {
 			String key = keys[i];
+			
+			// Check closed for the current object.
+			if (wantModify && obj.isClosed()) {
+				throw new CompilerException("Cannot navigate to '" + String.join(".", keys) + ": '" +
+						obj.getFullKey() + "' cannot be modified");
+			}
+			
 			ConfigElementBuilder element = obj.map.get(key);
 			// Create nonexistent objects.
 			if (element == null) {
@@ -49,6 +56,13 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 				throw new CompilerException("Cannot navigate to '" + String.join(".", keys) + ": '" +
 						element.getFullKey() + "' is not a navigatable value");
 			}
+			
+			// Check closed for the next object.
+			// This is done to also check the last/resulting object.
+			if (wantModify && obj.isClosed()) {
+				throw new CompilerException("Cannot navigate to '" + String.join(".", keys) + ": '" +
+						obj.getFullKey() + "' cannot be modified");
+			}
 		}
 		return obj;
 	}
@@ -58,7 +72,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
 		}
-		ConfigObjectBuilder obj = this.navigate(key, key.length-1);
+		ConfigObjectBuilder obj = this.navigate(key, key.length-1, true);
 		String lastKey = key[key.length-1];
 		ConfigObjectBuilder newObj = new ConfigObjectBuilder(obj, lastKey);
 		if (obj.map.put(lastKey, newObj) != null) {
@@ -72,7 +86,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
 		}
-		ConfigObjectBuilder parentObj = this.navigate(key, key.length-1);
+		ConfigObjectBuilder parentObj = this.navigate(key, key.length-1, true);
 		String lastKey = key[key.length-1];
 		ConfigElementBuilder element = parentObj.map.get(lastKey);
 		ConfigObjectBuilder obj;
@@ -94,7 +108,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
 		}
-		ConfigObjectBuilder obj = this.navigate(key, key.length-1);
+		ConfigObjectBuilder obj = this.navigate(key, key.length-1, true);
 		String lastKey = key[key.length-1];
 		ConfigElementBuilder element = obj.map.get(lastKey);
 		ConfigListBuilder list;
@@ -116,7 +130,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
 		}
-		ConfigObjectBuilder obj = this.navigate(key, key.length-1);
+		ConfigObjectBuilder obj = this.navigate(key, key.length-1, true);
 		String lastKey = key[key.length-1];
 		ConfigElementBuilder element = obj.map.get(lastKey);
 		if (element != null) {
@@ -137,7 +151,7 @@ class ConfigObjectBuilder extends ConfigElementBuilder {
 		if (key.length <= 0) {
 			throw new CompilerException("No key specified");
 		}
-		ConfigObjectBuilder obj = this.navigate(key, key.length-1);
+		ConfigObjectBuilder obj = this.navigate(key, key.length-1, true);
 		String lastKey = key[key.length-1];
 		ConfigElementBuilder newElement = valueFactory.create(obj, lastKey);
 		if (obj.map.put(lastKey, newElement) != null) {
