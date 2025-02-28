@@ -5,6 +5,7 @@ import static de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuf
 
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 
 import de.tomatengames.lib.compiler.CompilerException;
@@ -13,6 +14,7 @@ import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContext;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerContextWithBuffer;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerGrammar;
 import de.tomatengames.lib.compiler.prefixlexer.PrefixLexerOption;
+import de.tomatengames.util.CharsetUtil;
 import de.tomatengames.util.HexUtil;
 
 /**
@@ -487,7 +489,9 @@ class TOMLConfigParser {
 		public void bufferHexCodePoint(String codePointHex) throws CompilerException {
 			try {
 				int codePoint = HexUtil.hexToInt(codePointHex);
-				String str = new String(new int[] {codePoint}, 0, 1);
+				byte[] utf8Bytes = new byte[4];
+				int n = CharsetUtil.encodeUTF8(codePoint, utf8Bytes, 0);
+				String str = new String(utf8Bytes, 0, n, StandardCharsets.UTF_8);
 				this.buffer(str);
 			} catch (IllegalArgumentException e) {
 				throw new CompilerException(e);
