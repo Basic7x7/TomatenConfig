@@ -13,11 +13,13 @@ import java.time.temporal.TemporalQueries;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -392,6 +394,76 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
+	
+	private <V> ConfigTransformer<Self, List<V>> transformerGetListOf(ConfigElementTransformer<V> transformer) {
+		return (element, config) -> {
+			this.typeCheck(element, Type.LIST);
+			return config.stream().map(c -> transformer.transform(c.getData()))
+					.collect(Collectors.toList());
+		};
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(ConfigElementTransformer<V> transformer) {
+		return this.get(transformerGetListOf(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(ConfigTransformer<Self, V> transformer) {
+		return this.getListOf(configTransformerWrapper(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(String name, ConfigElementTransformer<V> transformer) {
+		return this.get(name, transformerGetListOf(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(String name, ConfigTransformer<Self, V> transformer) {
+		return this.getListOf(name, configTransformerWrapper(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(int index, ConfigElementTransformer<V> transformer) {
+		return this.get(index, transformerGetListOf(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getListOf(int index, ConfigTransformer<Self, V> transformer) {
+		return this.getListOf(index, configTransformerWrapper(transformer));
+	}
+	
+	
+	private <V> ConfigTransformer<Self, List<V>> transformerGetOneOrMany(ConfigElementTransformer<V> transformer) {
+		return (element, config) -> {
+			if (config.getType() == Type.LIST) {
+				return config.stream().map(c -> transformer.transform(c.getData()))
+						.collect(Collectors.toList());
+			}
+			return Collections.singletonList(transformer.transform(element));
+		};
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(ConfigElementTransformer<V> transformer) {
+		return this.get(transformerGetOneOrMany(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(ConfigTransformer<Self, V> transformer) {
+		return this.getOneOrMany(configTransformerWrapper(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigElementTransformer<V> transformer) {
+		return this.get(name, transformerGetOneOrMany(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigTransformer<Self, V> transformer) {
+		return this.getOneOrMany(name, configTransformerWrapper(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigElementTransformer<V> transformer) {
+		return this.get(index, transformerGetOneOrMany(transformer));
+	}
+	
+	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigTransformer<Self, V> transformer) {
+		return this.getOneOrMany(index, configTransformerWrapper(transformer));
+	}
+	
+	
+	
 	public Stream<Self> stream() {
 		return StreamSupport.stream(this.spliterator(), false);
 	}
@@ -401,7 +473,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		switch (this.data.getType()) {
 		case LIST: return new ListElementIterator();
 		case OBJECT: return new ObjectElementIterator();
-		default: return Collections.emptyIterator();
+		default: return Collections.singleton(newSubConfig(this.data)).iterator();
 		}
 	}
 	
@@ -410,7 +482,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		switch (this.data.getType()) {
 		case LIST: return new ListElementSpliterator(0, this.data.size());
 		case OBJECT: return Spliterators.spliterator(new ObjectElementIterator(), this.data.getKeys().size(), Spliterator.NONNULL);
-		default: return Spliterators.emptySpliterator();
+		default: return Collections.singleton(newSubConfig(this.data)).spliterator();
 		}
 	}
 	
