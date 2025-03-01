@@ -14,8 +14,8 @@ class ConfigObject extends ConfigElement {
 	private final Map<String, ConfigElement> map;
 	private final Set<String> keys;
 	
-	public ConfigObject(String fullName, Map<String, ConfigElement> map, String originalType) {
-		super(fullName, originalType);
+	public ConfigObject(String name, String fullName, Map<String, ConfigElement> map, String originalType) {
+		super(name, fullName, originalType);
 		this.map = map;
 		this.keys = Collections.unmodifiableSet(map.keySet());
 	}

@@ -71,7 +71,7 @@ abstract class ConfigElementBuilder {
 		return new ConfigElementBuilder(parent, key) {
 			@Override
 			public ConfigElement toElement() {
-				return new ConfigString(this.getFullKey(), value, this.getOriginalType());
+				return new ConfigString(this.getKey(), this.getFullKey(), value, this.getOriginalType());
 			}
 		};
 	}
@@ -80,7 +80,7 @@ abstract class ConfigElementBuilder {
 		return new ConfigElementBuilder(parent, key) {
 			@Override
 			public ConfigElement toElement() {
-				return new ConfigBoolean(this.getFullKey(), value, this.getOriginalType());
+				return new ConfigBoolean(this.getKey(), this.getFullKey(), value, this.getOriginalType());
 			}
 		};
 	}
@@ -89,7 +89,7 @@ abstract class ConfigElementBuilder {
 		return new ConfigElementBuilder(parent, key) {
 			@Override
 			public ConfigElement toElement() {
-				return new ConfigInt(this.getFullKey(), value, this.getOriginalType());
+				return new ConfigInt(this.getKey(), this.getFullKey(), value, this.getOriginalType());
 			}
 		};
 	}
@@ -98,7 +98,7 @@ abstract class ConfigElementBuilder {
 		return new ConfigElementBuilder(parent, key) {
 			@Override
 			public ConfigElement toElement() {
-				return new ConfigDouble(this.getFullKey(), value, this.getOriginalType());
+				return new ConfigDouble(this.getKey(), this.getFullKey(), value, this.getOriginalType());
 			}
 		};
 	}

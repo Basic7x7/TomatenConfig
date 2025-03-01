@@ -6,8 +6,8 @@ import dev.tomaten.json.generic.JSONNumber;
 class ConfigInt extends ConfigElement {
 	private final long value;
 	
-	public ConfigInt(String fullName, long value, String originalType) {
-		super(fullName, originalType);
+	public ConfigInt(String name, String fullName, long value, String originalType) {
+		super(name, fullName, originalType);
 		this.value = value;
 	}
 	

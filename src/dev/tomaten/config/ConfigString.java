@@ -8,8 +8,8 @@ import dev.tomaten.json.generic.JSONString;
 class ConfigString extends ConfigElement {
 	private final String value;
 	
-	public ConfigString(String fullName, String value, String originalType) {
-		super(fullName, originalType);
+	public ConfigString(String name, String fullName, String value, String originalType) {
+		super(name, fullName, originalType);
 		requireNotNull(value, "The string value ...");
 		this.value = value;
 	}

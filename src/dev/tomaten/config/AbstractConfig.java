@@ -11,9 +11,15 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import dev.tomaten.config.ConfigElement.Type;
 import dev.tomaten.json.generic.JSONElement;
@@ -33,6 +39,14 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	
 	public ConfigElement getData() {
 		return this.data;
+	}
+	
+	public String getName() {
+		return this.data.getName();
+	}
+	
+	public String getFullName() {
+		return this.data.getFullName();
 	}
 	
 	
@@ -378,18 +392,33 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
-	
-	@Override
-	public Iterator<Self> iterator() throws ConfigError {
-		// Throws a ConfigError if this config data is not iterable / not a list.
-		return new Iter();
+	public Stream<Self> stream() {
+		return StreamSupport.stream(this.spliterator(), false);
 	}
 	
-	private class Iter implements Iterator<Self> {
+	@Override
+	public Iterator<Self> iterator() {
+		switch (this.data.getType()) {
+		case LIST: return new ListElementIterator();
+		case OBJECT: return new ObjectElementIterator();
+		default: return Collections.emptyIterator();
+		}
+	}
+	
+	@Override
+	public Spliterator<Self> spliterator() {
+		switch (this.data.getType()) {
+		case LIST: return new ListElementSpliterator(0, this.data.size());
+		case OBJECT: return Spliterators.spliterator(new ObjectElementIterator(), this.data.getKeys().size(), Spliterator.NONNULL);
+		default: return Spliterators.emptySpliterator();
+		}
+	}
+	
+	private class ListElementIterator implements Iterator<Self> {
 		private final int size;
 		private int next;
 		
-		public Iter() {
+		public ListElementIterator() {
 			this.size = data.size();
 			this.next = 0;
 		}
@@ -407,6 +436,77 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 			ConfigElement element = data.get(this.next++);
 			return newSubConfig(element);
 		}
+		
+		// remove() is unsupported.
+		// The data should not be modifiable.
+	}
+	
+	private class ListElementSpliterator implements Spliterator<Self> {
+		private final int end;
+		private int next;
+		
+		public ListElementSpliterator(int start, int end) {
+			this.next = start;
+			this.end = end;
+		}
+		
+		@Override
+		public boolean tryAdvance(Consumer<? super Self> action) {
+			if (this.next >= this.end) {
+				return false;
+			}
+			
+			int nextIndex = this.next++;
+			ConfigElement nextElement = data.get(nextIndex);
+			Self next = newSubConfig(nextElement);
+			action.accept(next);
+			return true;
+		}
+		
+		@Override
+		public Spliterator<Self> trySplit() {
+			int start = this.next;
+			int dif = this.end - start;
+			if (dif <= 1) {
+				return null;
+			}
+			int mid = start + (dif >>> 1);
+			this.next = mid;
+			return new ListElementSpliterator(start, mid);
+		}
+		
+		@Override
+		public long estimateSize() {
+			return (long) (this.end - this.next);
+		}
+		
+		@Override
+		public int characteristics() {
+			return Spliterator.NONNULL | Spliterator.ORDERED | Spliterator.SIZED | Spliterator.SUBSIZED;
+		}
+	}
+	
+	private class ObjectElementIterator implements Iterator<Self> {
+		private final Iterator<String> keysIterator;
+		
+		public ObjectElementIterator() {
+			this.keysIterator = data.getKeys().iterator();
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return this.keysIterator.hasNext();
+		}
+		
+		@Override
+		public Self next() {
+			String key = this.keysIterator.next();
+			ConfigElement nextElement = data.get(key);
+			return newSubConfig(nextElement);
+		}
+		
+		// remove() is unsupported.
+		// The data should not be modifiable.
 	}
 	
 	

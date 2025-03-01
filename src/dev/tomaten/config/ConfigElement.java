@@ -7,12 +7,18 @@ import java.util.List;
 import dev.tomaten.json.generic.JSONElement;
 
 public abstract class ConfigElement {
+	private final String name;
 	private final String fullName;
 	private final String originalType;
 	
-	protected ConfigElement(String fullName, String originalType) {
+	protected ConfigElement(String name, String fullName, String originalType) {
+		this.name = name;
 		this.fullName = fullName;
 		this.originalType = originalType;
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 	public String getFullName() {

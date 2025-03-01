@@ -14,19 +14,19 @@ class JSONConfigParser {
 		try {
 			JSONReader reader = new JSONReader(r);
 			reader.setStrict(false);
-			return read(reader, "");
+			return read(reader, "root", "");
 		} catch (IOException e) {
 			throw new ConfigError("Failed to read JSON config", e);
 		}
 	}
 	
-	private static ConfigElement read(JSONReader reader, String fullName) throws IOException, ConfigError {
+	private static ConfigElement read(JSONReader reader, String name, String fullName) throws IOException, ConfigError {
 		ElementType type = reader.type();
 		try {
 			switch (type) {
 				case STRING: {
 					String value = reader.readString(Long.MAX_VALUE);
-					return new ConfigString(fullName, value, "string");
+					return new ConfigString(name, fullName, value, "string");
 				}
 				case NUMBER: {
 					String numberStr = reader.readNumberString(Long.MAX_VALUE);
@@ -34,7 +34,7 @@ class JSONConfigParser {
 					if (numberStr.chars().allMatch(c -> ('0' <= c && c <= '9') || c == '-' || c == '+')) {
 						try {
 							long longValue = Long.parseLong(numberStr);
-							return new ConfigInt(fullName, longValue, "number");
+							return new ConfigInt(name, fullName, longValue, "number");
 						} catch (NumberFormatException e) {
 							// continue with parseDouble
 						}
@@ -42,18 +42,18 @@ class JSONConfigParser {
 					// If the number could not be parsed as long, try to parse it as double.
 					try {
 						double doubleValue = Double.parseDouble(numberStr);
-						return new ConfigDouble(fullName, doubleValue, "number");
+						return new ConfigDouble(name, fullName, doubleValue, "number");
 					} catch (NumberFormatException e) {
 						throw new ConfigError("Could not parse JSON number" + (fullName.isEmpty() ? "" : " for '" + fullName + "'"), e);
 					}
 				}
 				case FALSE: {
 					reader.readFalse();
-					return new ConfigBoolean(fullName, false, "boolean");
+					return new ConfigBoolean(name, fullName, false, "boolean");
 				}
 				case TRUE: {
 					reader.readTrue();
-					return new ConfigBoolean(fullName, true, "boolean");
+					return new ConfigBoolean(name, fullName, true, "boolean");
 				}
 				case NULL: {
 					reader.readNull();
@@ -63,26 +63,27 @@ class JSONConfigParser {
 					ArrayList<ConfigElement> elements = new ArrayList<>();
 					reader.enterArray();
 					while (reader.nextEntry()) {
-						ConfigElement e = read(reader, (fullName.isEmpty() ? "" : fullName + ".") + elements.size());
+						String key = String.valueOf(elements.size());
+						ConfigElement e = read(reader, key, (fullName.isEmpty() ? "" : fullName + ".") + key);
 						if (e != null) {
 							elements.add(e);
 						}
 					}
 					reader.exitArray();
-					return new ConfigList(fullName, elements, "array");
+					return new ConfigList(name, fullName, elements, "array");
 				}
 				case OBJECT: {
 					HashMap<String, ConfigElement> map = new HashMap<>();
 					reader.enterObject();
 					while (reader.nextEntry()) {
 						String key = reader.readKey(Long.MAX_VALUE);
-						ConfigElement e = read(reader, (fullName.isEmpty() ? "" : fullName + ".") + key);
+						ConfigElement e = read(reader, key, (fullName.isEmpty() ? "" : fullName + ".") + key);
 						if (e != null) {
 							map.put(key, e);
 						}
 					}
 					reader.exitObject();
-					return new ConfigObject(fullName, map, "object");
+					return new ConfigObject(name, fullName, map, "object");
 				}
 				case INVALID: {
 					throw new ConfigError(msgReadError(null, fullName) + ": Invalid JSON");

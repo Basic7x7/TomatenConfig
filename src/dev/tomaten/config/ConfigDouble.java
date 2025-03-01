@@ -6,8 +6,8 @@ import dev.tomaten.json.generic.JSONNumber;
 class ConfigDouble extends ConfigElement {
 	private final double value;
 	
-	public ConfigDouble(String fullName, double value, String originalType) {
-		super(fullName, originalType);
+	public ConfigDouble(String name, String fullName, double value, String originalType) {
+		super(name, fullName, originalType);
 		this.value = value;
 	}
 	

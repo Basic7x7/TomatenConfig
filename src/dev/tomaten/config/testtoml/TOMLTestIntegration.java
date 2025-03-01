@@ -49,9 +49,8 @@ class TOMLTestIntegration {
 		switch (config.getType()) {
 			case OBJECT: {
 				JSONObject obj = new JSONObject();
-				for (String key : config.getKeys()) {
-					Config value = config.getDirect(key).orError();
-					obj.set(key, toJSON(value));
+				for (Config entry : config) {
+					obj.set(entry.getName(), toJSON(entry));
 				}
 				return obj;
 			}

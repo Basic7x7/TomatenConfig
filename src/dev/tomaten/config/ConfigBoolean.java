@@ -6,8 +6,8 @@ import dev.tomaten.json.generic.JSONElement;
 class ConfigBoolean extends ConfigElement {
 	private final boolean value;
 	
-	public ConfigBoolean(String fullName, boolean value, String originalType) {
-		super(fullName, originalType);
+	public ConfigBoolean(String name, String fullName, boolean value, String originalType) {
+		super(name, fullName, originalType);
 		this.value = value;
 	}
 	

@@ -11,8 +11,8 @@ class ConfigList extends ConfigElement {
 	private final List<ConfigElement> elements;
 	private final List<ConfigElement> unmodElements;
 	
-	public ConfigList(String fullName, List<ConfigElement> elements, String originalType) {
-		super(fullName, originalType);
+	public ConfigList(String name, String fullName, List<ConfigElement> elements, String originalType) {
+		super(name, fullName, originalType);
 		this.elements = elements;
 		this.unmodElements = Collections.unmodifiableList(elements);
 	}
