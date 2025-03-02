@@ -2,14 +2,6 @@ package dev.tomaten.config;
 
 import static de.tomatengames.util.RequirementUtil.requireNotNull;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalQueries;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,13 +18,14 @@ import java.util.stream.StreamSupport;
 import dev.tomaten.config.ConfigElement.Type;
 import dev.tomaten.json.generic.JSONElement;
 
-public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implements Iterable<Self> {
+public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implements IConfig<Self> {
 	private Supplier<Self> factory;
 	private ConfigElement data;
 	
 	
 	protected AbstractConfig() {
 	}
+	
 	
 	protected void init(Supplier<Self> factory, ConfigElement data) {
 		this.factory = factory;
@@ -115,28 +108,36 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		return element;
 	}
 	
-	
+	@Override
 	public Type getType() {
 		return this.data.getType();
 	}
 	
+	@Override
 	public Type getType(String name) {
 		ConfigElement element = this.navigate(name, true, true); // no throw error, may be null, interpret dots
 		return element != null ? element.getType() : null;
 	}
 	
+	@Override
 	public Type getType(int index) {
 		ConfigElement element = this.data.getOrNull(index);
 		return element != null ? element.getType() : null;
 	}
 	
+	@Override
 	public String getOriginalType() {
 		return this.data.getOriginalType();
 	}
 	
-	
+	@Override
 	public Collection<String> getKeys() {
 		return this.data.getKeys();
+	}
+	
+	@Override
+	public int size() throws ConfigError {
+		return this.data.size();
 	}
 	
 	
@@ -150,6 +151,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		};
 	}
 	
+	@Override
 	public <V> ConfigValue<V> get(ConfigElementTransformer<V> transformer) {
 		try {
 			V value = transformer != null ? transformer.transform(this.data) : null;
@@ -159,26 +161,32 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
-	public <V> ConfigValue<V> get(ConfigTransformer<? super Self, V> transformer) {
+	@Override
+	public <V> ConfigValue<V> get(ConfigTransformer<Self, V> transformer) {
 		return this.get(configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<V> get(String name, ConfigElementTransformer<V> transformer) {
 		return this.getImpl(name, true, transformer);
 	}
 	
+	@Override
 	public <V> ConfigValue<V> get(String name, ConfigTransformer<? super Self, V> transformer) {
 		return this.getImpl(name, true, configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public ConfigValue<Self> getDirect(String name) {
 		return this.getImpl(name, false, element -> this.newSubConfig(element));
 	}
 	
+	@Override
 	public <V> ConfigValue<V> getDirect(String name, ConfigElementTransformer<V> transformer) {
 		return this.getImpl(name, false, transformer);
 	}
 	
+	@Override
 	public <V> ConfigValue<V> getDirect(String name, ConfigTransformer<? super Self, V> transformer) {
 		return this.getImpl(name, false, configTransformerWrapper(transformer));
 	}
@@ -194,7 +202,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
-	
+	@Override
 	public <V> ConfigValue<V> get(int index, ConfigElementTransformer<V> transformer) {
 		ConfigElement element = null;
 		try {
@@ -206,192 +214,55 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
+	@Override
 	public <V> ConfigValue<V> get(int index, ConfigTransformer<? super Self, V> transformer) {
 		return this.get(index, configTransformerWrapper(transformer));
 	}
 	
 	
 	
+	@Override
 	public ConfigValue<Self> getAny(String name) {
 		return this.get(name, element -> this.newSubConfig(element));
 	}
 	
+	@Override
 	public ConfigValue<Self> getAny(int index) {
 		return this.get(index, element -> this.newSubConfig(element));
 	}
 	
 	
+	@Override
 	public ConfigValue<Self> getObject() {
 		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
+	@Override
 	public ConfigValue<Self> getObject(String name) {
 		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
+	@Override
 	public ConfigValue<Self> getObject(int index) {
 		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
 	
+	@Override
 	public ConfigValue<Self> getList() {
 		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
+	@Override
 	public ConfigValue<Self> getList(String name) {
 		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
+	@Override
 	public ConfigValue<Self> getList(int index) {
 		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
-	
-	
-	public ConfigValue<String> getString() {
-		return this.get(ConfigElement::getString);
-	}
-	
-	public ConfigValue<String> getString(String name) {
-		return this.get(name, ConfigElement::getString);
-	}
-	
-	public ConfigValue<String> getString(int index) {
-		return this.get(index, ConfigElement::getString);
-	}
-	
-	
-	public ConfigValue<Long> getLong() {
-		return this.get(ConfigElement::getLong);
-	}
-	
-	public ConfigValue<Long> getLong(String name) {
-		return this.get(name, ConfigElement::getLong);
-	}
-	
-	public ConfigValue<Long> getLong(int index) {
-		return this.get(index, ConfigElement::getLong);
-	}
-	
-	
-	public ConfigValue<Integer> getInt() {
-		return this.get(ConfigElement::getInt);
-	}
-	
-	public ConfigValue<Integer> getInt(String name) {
-		return this.get(name, ConfigElement::getInt);
-	}
-	
-	public ConfigValue<Integer> getInt(int index) {
-		return this.get(index, ConfigElement::getInt);
-	}
-	
-	
-	public ConfigValue<Double> getDouble() {
-		return this.get(ConfigElement::getDouble);
-	}
-	
-	public ConfigValue<Double> getDouble(String name) {
-		return this.get(name, ConfigElement::getDouble);
-	}
-	
-	public ConfigValue<Double> getDouble(int index) {
-		return this.get(index, ConfigElement::getDouble);
-	}
-	
-	
-	public ConfigValue<Boolean> getBoolean() {
-		return this.get(ConfigElement::getBoolean);
-	}
-	
-	public ConfigValue<Boolean> getBoolean(String name) {
-		return this.get(name, ConfigElement::getBoolean);
-	}
-	
-	public ConfigValue<Boolean> getBoolean(int index) {
-		return this.get(index, ConfigElement::getBoolean);
-	}
-	
-	
-	private static final ConfigElementTransformer<ZonedDateTime> DATE_TIME_TRANSFORMER = element -> {
-		String str = element.getString();
-		try {
-			TemporalAccessor temp = DateTimeFormatter.ISO_DATE_TIME.parse(str);
-			
-			// If the parsed date-time has a zone or offset specified, use it to create the ZonedDateTime.
-			// If the date-time has no zone or offset, use the system default zone.
-			ZoneId zone = temp.query(TemporalQueries.zone());
-			if (zone == null) {
-				zone = ZoneId.systemDefault();
-			}
-			
-			// Create a ZonedDateTime from the TemporalAccessor using the ZoneId from above.
-			// Don't use ZonedDateTime.from(), since it would try to access the zone from the TemporalAccessor, which might not exist.
-			// Don't use DateTimeFormatter.ISO_DATE_TIME.withZone(), because it may produce cursed ZonedDateTime objects
-			// with the specified zone even if an offset is specified. Additionally, this is buggy on Java 8.
-			LocalDate date = LocalDate.from(temp);
-			LocalTime time = LocalTime.from(temp);
-			return ZonedDateTime.of(date, time, zone);
-		} catch (DateTimeParseException e) {
-			throw new ConfigError(e);
-		}
-	};
-	
-	public ConfigValue<ZonedDateTime> getDateTime() {
-		return this.get(DATE_TIME_TRANSFORMER);
-	}
-	
-	public ConfigValue<ZonedDateTime> getDateTime(String name) {
-		return this.get(name, DATE_TIME_TRANSFORMER);
-	}
-	
-	public ConfigValue<ZonedDateTime> getDateTime(int index) {
-		return this.get(index, DATE_TIME_TRANSFORMER);
-	}
-	
-	
-	private static final ConfigElementTransformer<LocalDate> LOCAL_DATE_TRANSFORMER = element -> {
-		String str = element.getString();
-		try {
-			return DateTimeFormatter.ISO_LOCAL_DATE.parse(str, LocalDate::from);
-		} catch (DateTimeParseException e) {
-			throw new ConfigError(e);
-		}
-	};
-	
-	public ConfigValue<LocalDate> getLocalDate() {
-		return this.get(LOCAL_DATE_TRANSFORMER);
-	}
-	
-	public ConfigValue<LocalDate> getLocalDate(String name) {
-		return this.get(name, LOCAL_DATE_TRANSFORMER);
-	}
-	
-	public ConfigValue<LocalDate> getLocalDate(int index) {
-		return this.get(index, LOCAL_DATE_TRANSFORMER);
-	}
-	
-	
-	private static final ConfigElementTransformer<LocalTime> LOCAL_TIME_TRANSFORMER = element -> {
-		String str = element.getString();
-		try {
-			return DateTimeFormatter.ISO_LOCAL_TIME.parse(str, LocalTime::from);
-		} catch (DateTimeParseException e) {
-			throw new ConfigError(e);
-		}
-	};
-	
-	public ConfigValue<LocalTime> getLocalTime() {
-		return this.get(LOCAL_TIME_TRANSFORMER);
-	}
-	
-	public ConfigValue<LocalTime> getLocalTime(String name) {
-		return this.get(name, LOCAL_TIME_TRANSFORMER);
-	}
-	
-	public ConfigValue<LocalTime> getLocalTime(int index) {
-		return this.get(index, LOCAL_TIME_TRANSFORMER);
-	}
 	
 	
 	
@@ -403,26 +274,32 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		};
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(ConfigElementTransformer<V> transformer) {
 		return this.get(transformerGetListOf(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(ConfigTransformer<Self, V> transformer) {
 		return this.getListOf(configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(String name, ConfigElementTransformer<V> transformer) {
 		return this.get(name, transformerGetListOf(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(String name, ConfigTransformer<Self, V> transformer) {
 		return this.getListOf(name, configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(int index, ConfigElementTransformer<V> transformer) {
 		return this.get(index, transformerGetListOf(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getListOf(int index, ConfigTransformer<Self, V> transformer) {
 		return this.getListOf(index, configTransformerWrapper(transformer));
 	}
@@ -438,52 +315,66 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		};
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(ConfigElementTransformer<V> transformer) {
 		return this.get(transformerGetOneOrMany(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(ConfigTransformer<Self, V> transformer) {
 		return this.getOneOrMany(configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigElementTransformer<V> transformer) {
 		return this.get(name, transformerGetOneOrMany(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigTransformer<Self, V> transformer) {
 		return this.getOneOrMany(name, configTransformerWrapper(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigElementTransformer<V> transformer) {
 		return this.get(index, transformerGetOneOrMany(transformer));
 	}
 	
+	@Override
 	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigTransformer<Self, V> transformer) {
 		return this.getOneOrMany(index, configTransformerWrapper(transformer));
 	}
 	
 	
 	
+	@Override
+	public Stream<Self> streamObjectEntries() {
+		if (this.data.getType() == Type.OBJECT) {
+			Spliterator<Self> spliterator = Spliterators.spliterator(new ObjectEntryIterator(), this.data.getKeys().size(), Spliterator.NONNULL);
+			return StreamSupport.stream(spliterator, false);
+		}
+		return Stream.empty();
+	}
+	
+	@Override
 	public Stream<Self> stream() {
 		return StreamSupport.stream(this.spliterator(), false);
 	}
 	
 	@Override
 	public Iterator<Self> iterator() {
-		switch (this.data.getType()) {
-		case LIST: return new ListElementIterator();
-		case OBJECT: return new ObjectElementIterator();
-		default: return Collections.singleton(newSubConfig(this.data)).iterator();
+		if (this.data.getType() == Type.LIST) {
+			return new ListElementIterator();
 		}
+		return Collections.singleton(newSubConfig(this.data)).iterator();
 	}
 	
 	@Override
 	public Spliterator<Self> spliterator() {
-		switch (this.data.getType()) {
-		case LIST: return new ListElementSpliterator(0, this.data.size());
-		case OBJECT: return Spliterators.spliterator(new ObjectElementIterator(), this.data.getKeys().size(), Spliterator.NONNULL);
-		default: return Collections.singleton(newSubConfig(this.data)).spliterator();
+		if (this.data.getType() == Type.LIST) {
+			return new ListElementSpliterator(0, this.data.size());
 		}
+		return Collections.singleton(newSubConfig(this.data)).spliterator();
 	}
 	
 	private class ListElementIterator implements Iterator<Self> {
@@ -558,10 +449,10 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		}
 	}
 	
-	private class ObjectElementIterator implements Iterator<Self> {
+	private class ObjectEntryIterator implements Iterator<Self> {
 		private final Iterator<String> keysIterator;
 		
-		public ObjectElementIterator() {
+		public ObjectEntryIterator() {
 			this.keysIterator = data.getKeys().iterator();
 		}
 		
