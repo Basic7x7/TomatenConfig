@@ -18,28 +18,55 @@ import java.util.stream.StreamSupport;
 import dev.tomaten.config.ConfigElement.Type;
 import dev.tomaten.json.generic.JSONElement;
 
+/**
+ * An abstract base class for configuration objects.
+ * <p>
+ * This class implements the methods declared by {@link IConfig}.
+ * 
+ * @param <Self> The concrete type of this configuration.
+ * If you extend this class with a class {@code MyConfig}, this type parameter should be {@code MyConfig}.
+ * In this case, {@code MyConfig} should be {@code final}, as it would not be possible to chose this type parameter accordingly.
+ * 
+ * @version 2025-03-03 last modified
+ * @version 2025-02-15 created
+ * @since 1.0
+ */
 public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implements IConfig<Self> {
 	private Supplier<Self> factory;
 	private ConfigElement data;
 	
 	
+	/**
+	 * Creates a new {@link AbstractConfig} object.
+	 * The {@link #init(Supplier, ConfigElement)} method must be called before this object is used.
+	 */
 	protected AbstractConfig() {
 	}
 	
-	
+	/**
+	 * Initializes this object with the given data.
+	 * @param factory The factory to create a new instance of this class. Not null.
+	 * @param data The {@link ConfigElement} that backs this configuration. Not null.
+	 */
 	protected void init(Supplier<Self> factory, ConfigElement data) {
 		this.factory = factory;
 		this.data = data;
 	}
 	
-	public ConfigElement getData() {
+	/**
+	 * Returns the {@link ConfigElement} that backs this configuration.
+	 * @return The ConfigElement. Not null.
+	 */
+	protected ConfigElement getData() {
 		return this.data;
 	}
 	
+	@Override
 	public String getName() {
 		return this.data.getName();
 	}
 	
+	@Override
 	public String getFullName() {
 		return this.data.getFullName();
 	}

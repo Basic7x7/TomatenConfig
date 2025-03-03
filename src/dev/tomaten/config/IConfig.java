@@ -16,7 +16,39 @@ import java.util.stream.Stream;
 
 import dev.tomaten.config.ConfigElement.Type;
 
+/**
+ * A configuration that allows to access its contents.
+ * A configuration that is always backed by a {@link ConfigElement}.
+ * That ConfigElement may be of any type.
+ * In general, if this config represents an object, the prefered way of access is to use the {@code get(name)} methods.
+ * If this config represents a list, the {@code get(index)} methods should be used.
+ * If this config represents a leaf element (e.g. string), the {@code get()} methods should be used.
+ * <p>
+ * This interface is designed to be the base for all application specific configuration extensions.
+ * It is recommended to use the {@link AbstractConfig} class as the implementation for all methods this interface defines.
+ * If you create a concrete configuration class, extend {@link AbstractConfig} directly.
+ * 
+ * @version 2025-03-03 created
+ * @since 1.0
+ */
 public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
+	
+	/**
+	 * Returns the name of this config element.
+	 * This name is typically the last segment of the full name returned by {@link #getFullName()}.
+	 * For example, if the full name is {@code "database.host"}, then the name would be {@code "host"}.
+	 * @return The name of this config element. Not null.
+	 * @see #getFullName()
+	 */
+	public String getName();
+	
+	/**
+	 * Returns the full name of this config element, which includes all parent elements separated by dots {@code '.'}.
+	 * @return The full name of this config element. Not null.
+	 * @see #getName()
+	 */
+	public String getFullName();
+	
 	
 	/**
 	 * Returns the {@link Type} of the element that this config represents.
@@ -590,40 +622,236 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	
 	
 	
-	// TODO JavaDoc
-	
+	/**
+	 * Applies the specified transformer to all list elements of this config if this config represents a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If this config does not represent a list or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * Applies the specified transformer to all list elements of this config if this config represents a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If this config does not represent a list or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(ConfigTransformer<Self, V> transformer);
 	
+	/**
+	 * Navigates to the element with the specified name and applies the specified transformer to all list elements of that config element if it is a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If no such element exists, the element is not a list or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param name The name of the element to navigate to. Not null. Dots {@code '.'} are used as separator to navigate through nested elements.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(String name, ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * Navigates to the element with the specified name and applies the specified transformer to all list elements of that config element if it is a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If no such element exists, the element is not a list or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param name The name of the element to navigate to. Not null. Dots {@code '.'} are used as separator to navigate through nested elements.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(String name, ConfigTransformer<Self, V> transformer);
 	
+	/**
+	 * Gets the element with the specified index and applies the specified transformer to all list elements of that config element if it is a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If no such element exists, the index is out of bounds, the element is not a list
+	 * or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param index The index of the element to get.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(int index, ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * Gets the element with the specified index and applies the specified transformer to all list elements of that config element if it is a list.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements.
+	 * <p>
+	 * If no such element exists, the index is out of bounds, the element is not a list
+	 * or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param index The index of the element to get.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getListOf(int index, ConfigTransformer<Self, V> transformer);
 	
 	
+	/**
+	 * If this config represents a list, the specified transformer is applied to all list elements of this config.
+	 * Otherwise, the specified transformer is applied to the element represented by this config.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements
+	 * or a list containing a single transformed element if this config does not represent a list.
+	 * <p>
+	 * If the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * If this config represents a list, the specified transformer is applied to all list elements of this config.
+	 * Otherwise, the specified transformer is applied to the element represented by this config.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements
+	 * or a list containing a single transformed element if this config does not represent a list.
+	 * <p>
+	 * If the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(ConfigTransformer<Self, V> transformer);
 	
+	/**
+	 * Navigates to the element with the specified name.
+	 * If that element is a list, the specified transformer is applied to all elements of that list element.
+	 * Otherwise, the specified transformer is applied to that element itself.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements or a single transformed element.
+	 * <p>
+	 * If the element does not exist or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param name The name of the element to navigate to. Not null. Dots {@code '.'} are used as separator to navigate through nested elements.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * Navigates to the element with the specified name.
+	 * If that element is a list, the specified transformer is applied to all elements of that list element.
+	 * Otherwise, the specified transformer is applied to that element itself.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements or a single transformed element.
+	 * <p>
+	 * If the element does not exist or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param name The name of the element to navigate to. Not null. Dots {@code '.'} are used as separator to navigate through nested elements.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(String name, ConfigTransformer<Self, V> transformer);
 	
+	/**
+	 * Gets the element with the specified index.
+	 * If that element is a list, the specified transformer is applied to all elements of that list element.
+	 * Otherwise, the specified transformer is applied to that element itself.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements or a single transformed element.
+	 * <p>
+	 * If the element does not exist, the index is out of bounds or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param index The index of the element to get.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigElementTransformer<V> transformer);
 	
+	/**
+	 * Gets the element with the specified index.
+	 * If that element is a list, the specified transformer is applied to all elements of that list element.
+	 * Otherwise, the specified transformer is applied to that element itself.
+	 * Returns a {@link ConfigValue} representing a list of the transformed list elements or a single transformed element.
+	 * <p>
+	 * If the element does not exist, the index is out of bounds or the transformer throws a {@link ConfigError}, the ConfigValue will be empty.
+	 * <p>
+	 * This method is useful when you want to allow to specify multiple values, but also want to provide a simple way to specify a single value.
+	 * For example
+	 * <pre>
+	 * author: ["Author1", "Author2"]   => a list of strings ["Author1", "Author2"]
+	 * author: "Author1"                => a list of strings ["Author1"]
+	 * </pre>
+	 * @param <V> The type of the value returned by the transformer.
+	 * @param index The index of the element to get.
+	 * @param transformer The transformer to apply to the list elements of this config. Not null.
+	 * @return The {@link ConfigValue}. Not null.
+	 */
 	public <V> ConfigValue<List<V>> getOneOrMany(int index, ConfigTransformer<Self, V> transformer);
 	
 	
+	/**
+	 * Returns a {@link Stream} of configs representing the direct entries of this config if it represents an object.
+	 * If this config does not represent an object, the stream will be empty.
+	 * <p>
+	 * The stream can be used to iterate over the entries of this config.
+	 * The name of the entry can be obtained by {@link #getName()}.
+	 * @return The Stream. Not null.
+	 * @see #stream()
+	 */
 	public Stream<Self> streamObjectEntries();
 	
+	/**
+	 * Returns a {@link Stream} of configs representing all list elements of this config if it represents a list.
+	 * If this config does not represent a list, the stream will contain a single config that represents the same element as this config.
+	 * <p>
+	 * The stream can be used to iterate over the list elements of this config.
+	 * @return The Stream. Not null.
+	 * @see #streamObjectEntries()
+	 */
 	public Stream<Self> stream();
 	
+	/**
+	 * Returns an {@link Iterator} that iterates over configs representing all list elements of this config if it represents a list.
+	 * If this config does not represent a list, the Iterator will iterate over a single config that represents the same element as this config.
+	 * @return The Iterator. Not null.
+	 */
 	public Iterator<Self> iterator();
 	
+	/**
+	 * Returns an {@link Spliterator} that contains the same elements as the stream returned by {@link #stream()}.
+	 * @return The Spliterator. Not null.
+	 */
 	public Spliterator<Self> spliterator();
 	
 }
