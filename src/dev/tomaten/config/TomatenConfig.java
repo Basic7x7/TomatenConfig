@@ -28,7 +28,7 @@ public class TomatenConfig {
 			return ConfigType.AUTO_DETECT; // Cannot get filename
 		}
 		String filename = filenamePath.toString();
-		if (filename.endsWith(".json")) {
+		if (filename.endsWith(".json") || filename.endsWith(".js")) {
 			return ConfigType.JSON;
 		}
 		if (filename.endsWith(".toml")) {
