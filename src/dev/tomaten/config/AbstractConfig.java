@@ -514,10 +514,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
-	/**
-	 * Creates a {@link JSONElement} that represents this config element.
-	 * @return The {@link JSONElement}. Not null.
-	 */
+	@Override
 	public JSONElement toJSON() {
 		return this.data.toJSON();
 	}

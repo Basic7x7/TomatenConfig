@@ -15,6 +15,7 @@ import java.util.Spliterator;
 import java.util.stream.Stream;
 
 import dev.tomaten.config.ConfigElement.Type;
+import dev.tomaten.json.generic.JSONElement;
 
 /**
  * A configuration that allows to access its contents.
@@ -856,5 +857,12 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The Spliterator. Not null.
 	 */
 	public Spliterator<Self> spliterator();
+	
+	
+	/**
+	 * Creates a {@link JSONElement} that represents this config element.
+	 * @return The {@link JSONElement}. Not null.
+	 */
+	public JSONElement toJSON();
 	
 }
