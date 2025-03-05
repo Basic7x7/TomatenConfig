@@ -20,6 +20,15 @@ public abstract class ConfigElement {
 	private final String fullName;
 	private final String originalType;
 	
+	/**
+	 * Creates a new ConfigElement.
+	 * @param name The name of the config element. Not null.
+	 * @param fullName The full name of the config element. Not null.
+	 * @param originalType The original type of the config element. Null if unknown.
+	 * @see #getName()
+	 * @see #getFullName()
+	 * @see #getOriginalType()
+	 */
 	protected ConfigElement(String name, String fullName, String originalType) {
 		this.name = name;
 		this.fullName = fullName;
@@ -63,6 +72,11 @@ public abstract class ConfigElement {
 	}
 	
 	
+	/**
+	 * Returns an error message indicating that the type of this config element is not the expected type.
+	 * @param expected The expected type. Not null.
+	 * @return The error message. Not null.
+	 */
 	protected String typeErrorMessage(Type expected) {
 		String fullName = this.getFullName();
 		return "Invalid config value" + (fullName.isEmpty() ? "" : " for '" + this.getFullName() + "'") +

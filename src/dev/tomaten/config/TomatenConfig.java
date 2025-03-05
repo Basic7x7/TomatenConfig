@@ -23,6 +23,10 @@ import de.tomatengames.lib.compiler.CompilerException;
  */
 public class TomatenConfig {
 	
+	// Static class
+	private TomatenConfig() {
+	}
+	
 	/**
 	 * Returns the currently running version of TomatenConfig.
 	 * @return The version string. Not null.

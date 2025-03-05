@@ -28,6 +28,8 @@ import dev.tomaten.config.ConfigElement.Type;
  * It is recommended to use the {@link AbstractConfig} class as the implementation for all methods this interface defines.
  * If you create a concrete configuration class, extend {@link AbstractConfig} directly.
  * 
+ * @param <Self> The type of the actual config implementation.
+ * 
  * @version 2025-03-03 created
  * @since 1.0
  */

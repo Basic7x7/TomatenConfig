@@ -72,7 +72,15 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
-	protected ConfigElement navigate(String name, boolean allowNull, boolean interpretDots) throws ConfigError {
+	/**
+	 * Navigates to a sub-config element.
+	 * @param name The name of the sub-config element. Not null.
+	 * @param allowNull If it should be allowed to return null. If false and the element is not found, a {@link ConfigError} will be thrown.
+	 * @param interpretDots If dots in the name should be interpreted as separators. If false, the entire string is considered as a single element name.
+	 * @return The sub-config element.
+	 * @throws ConfigError If {@code allowNull} is false and the element is not found.
+	 */
+	private ConfigElement navigate(String name, boolean allowNull, boolean interpretDots) throws ConfigError {
 		requireNotNull(name, "The name ...");
 		ConfigElement current = this.data;
 		int n = name.length();

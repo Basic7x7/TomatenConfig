@@ -37,7 +37,7 @@ public class ConfigValue<V> {
 	 * This method does always return a non-null value if the value exists in the configuration,
 	 * even if the type is different from the expected type.
 	 * That means, for example, if the ConfigValue was obtained by {@code config.getString("key")},
-	 * but the config contains an integer, the type will be {@link ConfigType#INTEGER} and the value of this object will not be present.
+	 * but the config contains an integer, the type will be {@link ConfigElement.Type#INTEGER} and the value of this object will not be present.
 	 * 
 	 * @return the type of this configuration value. Null if the configuration value does not exist.
 	 */
