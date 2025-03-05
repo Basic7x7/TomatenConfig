@@ -88,11 +88,12 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	
 	/**
 	 * Returns the size of the element represented by this config.
-	 * In general, the element will be a list element and the returned size will be the number of elements in the list.
+	 * Indicates passed to the <i>by-index</i> getters should be less than this value.
+	 * <p>
+	 * In most cases, the element will be a list element and the returned size will be the number of elements in the list.
 	 * @return The size of the element. Not negative.
-	 * @throws ConfigError If the element has no size.
 	 */
-	public int size() throws ConfigError;
+	public int size();
 	
 	
 	

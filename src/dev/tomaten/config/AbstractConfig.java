@@ -163,7 +163,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	@Override
-	public int size() throws ConfigError {
+	public int size() {
 		return this.data.size();
 	}
 	
@@ -505,6 +505,11 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		return this.data.toString();
 	}
 	
+	
+	/**
+	 * Creates a {@link JSONElement} that represents this config element.
+	 * @return The {@link JSONElement}. Not null.
+	 */
 	public JSONElement toJSON() {
 		return this.data.toJSON();
 	}
