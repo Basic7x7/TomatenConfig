@@ -87,14 +87,6 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		int start = 0;
 		int end = 0; // Initial value relevant for error messages
 		do {
-			if (current.getType() != Type.OBJECT) {
-				if (allowNull) {
-					return null;
-				}
-				throw new ConfigError("Cannot access '" + name + "': Type of " + (end <= 0 ? "config" : "'" + name.substring(0, end) + "'") +
-						" is " + current.getType().toString());
-			}
-			
 			int partEnd;
 			String namePart;
 			if (interpretDots) {
@@ -108,7 +100,27 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 				namePart = name;
 			}
 			
-			current = current.getOrNull(namePart);
+			Type type = current.getType();
+			if (type == Type.OBJECT) {
+				current = current.getOrNull(namePart);
+			}
+			else if (type == Type.LIST) {
+				int index;
+				try {
+					index = Integer.parseInt(namePart);
+					current = current.getOrNull(index);
+				} catch (NumberFormatException e) {
+					current = null;
+				}
+			}
+			else {
+				if (allowNull) {
+					return null;
+				}
+				throw new ConfigError("Cannot access '" + name + "': Type of " + (end <= 0 ? "config" : "'" + name.substring(0, end) + "'") +
+						" is " + current.getType().toString());
+			}
+			
 			if (current == null) {
 				if (allowNull) {
 					return null;
