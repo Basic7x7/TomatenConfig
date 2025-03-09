@@ -25,7 +25,7 @@ class TOMLTestIntegration {
 		// Read the TOML input from System.in
 		Config config;
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
-			config = TomatenConfig.load(Config::new, reader, ConfigType.TOML);
+			config = TomatenConfig.load(Config::new, reader, null, ConfigType.TOML);
 		} catch (IOException | ConfigError e) {
 			e.printStackTrace();
 			System.exit(1);

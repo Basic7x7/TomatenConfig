@@ -90,7 +90,7 @@ public class TomatenConfig {
 			throw new ConfigError("Unsupported config file extension: " + path);
 		}
 		try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-			return load(configFactory, reader, type);
+			return load(configFactory, reader, path.toString(), type);
 		} catch (IOException e) {
 			throw new ConfigError("Failed to read the config file", e);
 		}
@@ -102,12 +102,13 @@ public class TomatenConfig {
 	 * @param <C> The type of the configuration to read.
 	 * @param configFactory A factory that creates an uninitialized instance of the configuration to read. Not null. For example, {@code Config::new}.
 	 * @param reader The {@link Reader} to read the configuration from. Not null.
+	 * @param resourceName The name of the resource to read. May be null. The resource name is used to improve error messages.
 	 * @param type The {@link ConfigType} that determines which parser should be used. Not null.
 	 * @return The configuration that was read. Not null.
 	 * @throws ConfigError If the configuration could not be read or parsed.
 	 * This may also wrap an {@link IOException}.
 	 */
-	public static <C extends AbstractConfig<C>> C load(Supplier<C> configFactory, Reader reader, ConfigType type) throws ConfigError {
+	public static <C extends AbstractConfig<C>> C load(Supplier<C> configFactory, Reader reader, String resourceName, ConfigType type) throws ConfigError {
 		requireNotNull(type, "The config type ...");
 		
 		ConfigElement rootElement = null;
@@ -118,7 +119,9 @@ public class TomatenConfig {
 		case TOML:
 			try {
 				rootElement = TOMLConfigParser.parse(reader);
-			} catch (CompilerException | IOException e) {
+			} catch (CompilerException e) {
+				throw new ConfigError(e.applyLocation(resourceName));
+			} catch (IOException e) {
 				throw new ConfigError(e);
 			}
 			break;
