@@ -1,0 +1,10 @@
+{
+    // This is a comment
+    "theme": "dark",
+    "notifications": {
+        "enabled": true,
+        /* Multi-line comment
+           explaining notifications */
+        "method": "email"
+    }
+}

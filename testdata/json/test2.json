@@ -1,0 +1,13 @@
+{
+    "database": {
+        "name": "test_db",
+        "credentials": {
+            "user": "admin",
+            "password": "secret"
+        },
+        "replicas": [
+            {"host": "replica1.local", "port": 5432},
+            {"host": "replica2.local", "port": 5433}
+        ]
+    }
+}
