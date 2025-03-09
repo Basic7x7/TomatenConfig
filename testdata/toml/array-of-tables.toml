@@ -1,0 +1,14 @@
+[[products]]
+name = "Hammer"
+id = 34
+
+[products.metadata]
+description = "A hammer"
+
+[[products]]
+name = "Nail"
+id = 42
+color = "gray"
+
+[products.metadata]
+description = "A nail"

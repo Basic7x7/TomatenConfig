@@ -1,0 +1,5 @@
+is_enabled = true # comment
+max_connections = 10
+one = 1.0
+# comment
+precision = 3.14159e-2

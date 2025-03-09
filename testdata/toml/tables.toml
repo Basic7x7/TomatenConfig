@@ -1,0 +1,12 @@
+[owner]
+name = "Me"
+date = 2025-03-09
+time = 16:45:12
+datetime = 2025-03-09T16:42:45Z
+
+[database]
+server = "192.168.1.1"
+ports = [ 8001, 8002, 8003 ]
+connection_max = 5000
+enabled = true
+metadata.description = "A database"

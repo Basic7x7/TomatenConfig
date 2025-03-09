@@ -1,0 +1,14 @@
+[[project]]
+author = "A"
+
+[[project]]
+author = "B"
+
+[[ project ]]
+author = ["A", "B"]
+
+[[project]]
+author = ["C"]
+
+[[project]]
+author = ["B", "C", "D"]
