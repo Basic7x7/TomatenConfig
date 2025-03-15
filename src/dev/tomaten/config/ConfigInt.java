@@ -56,4 +56,17 @@ class ConfigInt extends ConfigElement {
 	public JSONElement toJSON() {
 		return new JSONNumber(this.value);
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigInt) && this.value == ((ConfigInt) other).value;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Long.hashCode(this.value);
+	}
 }

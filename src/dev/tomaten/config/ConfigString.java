@@ -97,4 +97,17 @@ class ConfigString extends ConfigElement {
 	public JSONElement toJSON() {
 		return new JSONString(this.value);
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigString) && this.value.equals(((ConfigString) other).value);
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.value.hashCode();
+	}
 }

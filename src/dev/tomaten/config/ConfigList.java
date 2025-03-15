@@ -1,5 +1,7 @@
 package dev.tomaten.config;
 
+import static de.tomatengames.util.RequirementUtil.requireNotNull;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,6 +15,7 @@ class ConfigList extends ConfigElement {
 	
 	public ConfigList(String name, String fullName, List<ConfigElement> elements, String originalType) {
 		super(name, fullName, originalType);
+		requireNotNull(elements, "The list elements ...");
 		this.elements = elements;
 		this.unmodElements = Collections.unmodifiableList(elements);
 	}
@@ -65,6 +68,20 @@ class ConfigList extends ConfigElement {
 			array.add(jsonElement);
 		}
 		return array;
+	}
+	
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigList) && this.elements.equals(((ConfigList) other).elements);
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.elements.hashCode();
 	}
 	
 }

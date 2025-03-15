@@ -45,4 +45,17 @@ class ConfigBoolean extends ConfigElement {
 	public JSONElement toJSON() {
 		return new JSONBoolean(this.value);
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigBoolean) && this.value == ((ConfigBoolean) other).value;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Boolean.hashCode(this.value);
+	}
 }

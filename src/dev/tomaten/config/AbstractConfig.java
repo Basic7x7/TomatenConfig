@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Consumer;
@@ -532,5 +533,24 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	@Override
 	public JSONElement toJSON() {
 		return this.data.toJSON();
+	}
+	
+	
+	@Override
+	public boolean equals(Object obj) {
+		// Checks only the ConfigElement.
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof AbstractConfig<?>)) {
+			return false;
+		}
+		AbstractConfig<?> other = (AbstractConfig<?>) obj;
+		return Objects.equals(data, other.data);
+	}
+	
+	@Override
+	public int hashCode() {
+		return Objects.hash(data);
 	}
 }

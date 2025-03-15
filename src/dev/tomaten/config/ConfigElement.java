@@ -263,6 +263,30 @@ public abstract class ConfigElement {
 	 */
 	public abstract JSONElement toJSON();
 	
+	/**
+	 * Checks if the specified object is equal to this {@link ConfigElement}.
+	 * <p>
+	 * This method checks only the content of the elements and ignores
+	 * {@link #getName()}, {@link #getFullName()} and {@link #getOriginalType()} of the specified elements.
+	 * For inner objects, the keys of the entries are checked.
+	 * 
+	 * For example, in the following config, the objects at {@code "a"} and {@code "b"} are equal, even if their full names differ.
+	 * {@code "c"} is not equal to {@code "a"} nor {@code "b"}, because an inner entry as a different name.
+	 * <pre>
+	 * {
+	 *     "a": { "x": 5 },
+	 *     "b": { "x": 5 },
+	 *     "c": { "y": 5 }
+	 * }
+	 * </pre>
+	 * 
+	 * <p>
+	 * The order of elements in a list element is checked.
+	 */
+	public abstract boolean equals(Object other);
+	
+	public abstract int hashCode();
+	
 	
 	/**
 	 * The type of a {@link ConfigElement}.

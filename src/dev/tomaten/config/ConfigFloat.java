@@ -45,4 +45,17 @@ class ConfigFloat extends ConfigElement {
 	public JSONElement toJSON() {
 		return new JSONNumber(this.value);
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigFloat) && this.value == ((ConfigFloat) other).value;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Double.hashCode(this.value);
+	}
 }

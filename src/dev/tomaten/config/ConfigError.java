@@ -2,6 +2,9 @@ package dev.tomaten.config;
 
 /**
  * A {@link RuntimeException} thrown when an error occurs while loading or processing configuration data.
+ * <p>
+ * Note: This is a {@link RuntimeException} instead of a checked exception to improve the usability
+ * in lambda expressions and streams.
  *
  * @version 2025-02-16
  * @since 1.0

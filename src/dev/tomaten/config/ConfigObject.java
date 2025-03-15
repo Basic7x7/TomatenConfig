@@ -1,5 +1,7 @@
 package dev.tomaten.config;
 
+import static de.tomatengames.util.RequirementUtil.requireNotNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -16,6 +18,7 @@ class ConfigObject extends ConfigElement {
 	
 	public ConfigObject(String name, String fullName, Map<String, ConfigElement> map, String originalType) {
 		super(name, fullName, originalType);
+		requireNotNull(map, "The entry map ...");
 		this.map = map;
 		this.keys = Collections.unmodifiableSet(map.keySet());
 	}
@@ -58,5 +61,18 @@ class ConfigObject extends ConfigElement {
 			obj.set(entry.getKey(), element);
 		}
 		return obj;
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		return (other instanceof ConfigObject) && this.map.equals(((ConfigObject) other).map);
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.map.hashCode();
 	}
 }
