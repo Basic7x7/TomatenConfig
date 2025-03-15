@@ -106,7 +106,7 @@ class TOMLConfigTest {
 	public void testArray1ByTransformer() {
 		Config config = load("array1");
 		assertEquals(Arrays.asList(1, 5, 12, 0),
-				config.getListOf("array", (e, c) -> c.getInt("x").orError()).orError());
+				config.getListOf("array", c -> c.getInt("x").orError()).orError());
 	}
 	
 	@Test
@@ -120,7 +120,7 @@ class TOMLConfigTest {
 	public void testArray2() {
 		Config config = load("array2");
 		assertEquals(Arrays.asList("apple", "banana", "cherry"),
-				config.getListOf("fruits", ConfigElement::getString).orError());
+				config.getListOf("fruits", c -> c.getString().orError()).orError());
 		assertArrayEquals(new Integer[][] { {1,2}, {3,4} },
 				config.getList("matrix").orError().stream()
 				.map(c -> c.stream().map(c2 -> c2.getInt().orError()).toArray(Integer[]::new))
@@ -194,7 +194,7 @@ class TOMLConfigTest {
 		
 		Config database = config.getObject("database").orError();
 		assertEquals("192.168.1.1", database.getString("server").orError());
-		assertEquals(Arrays.asList(8001, 8002, 8003), database.getListOf("ports", ConfigElement::getInt).orError());
+		assertEquals(Arrays.asList(8001, 8002, 8003), database.getListOf("ports", (e, t) -> e.getInt()).orError());
 		assertEquals(5000, database.getInt("connection_max").orError());
 		assertEquals(true, database.getBoolean("enabled").orError());
 		assertEquals("A database", database.getString("metadata.description").orError());
@@ -220,7 +220,7 @@ class TOMLConfigTest {
 				asList("B", "C", "D")
 			),
 			config.getList("project").orError().stream()
-				.map(c -> c.getOneOrMany("author", ConfigElement::getString).orError())
+				.map(c -> c.getOneOrMany("author", c2 -> c2.getString().orError()).orError())
 				.collect(Collectors.toList()));
 	}
 	

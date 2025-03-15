@@ -57,7 +57,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	 * Returns the {@link ConfigElement} that backs this configuration.
 	 * @return The ConfigElement. Not null.
 	 */
-	protected ConfigElement getData() {
+	public ConfigElement getData() {
 		return this.data;
 	}
 	
@@ -192,17 +192,18 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		if (transformer == null) {
 			return null;
 		}
-		return element -> {
+		return (element, type) -> {
 			Self conf = this.newSubConfig(element);
-			return transformer.transform(element, conf);
+			return transformer.transform(conf);
 		};
 	}
 	
 	@Override
 	public <V> ConfigValue<V> get(ConfigElementTransformer<V> transformer) {
 		try {
-			V value = transformer != null ? transformer.transform(this.data) : null;
-			return new ConfigValue<>(value, this.data.getType(), null);
+			Type type = this.data.getType();
+			V value = transformer != null ? transformer.transform(this.data, type) : null;
+			return new ConfigValue<>(value, type, null);
 		} catch (ConfigError e) {
 			return new ConfigValue<>(null, this.data.getType(), e);
 		}
@@ -225,7 +226,7 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	
 	@Override
 	public ConfigValue<Self> getDirect(String name) {
-		return this.getImpl(name, false, element -> this.newSubConfig(element));
+		return this.getImpl(name, false, (element, type) -> this.newSubConfig(element));
 	}
 	
 	@Override
@@ -242,8 +243,9 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		ConfigElement element = null;
 		try {
 			element = this.navigate(name, false, interpretDots); // not null, throws error
-			V value = transformer != null ? transformer.transform(element) : null;
-			return new ConfigValue<>(value, element.getType(), null);
+			Type type = element.getType();
+			V value = transformer != null ? transformer.transform(element, type) : null;
+			return new ConfigValue<>(value, type, null);
 		} catch (ConfigError e) {
 			return new ConfigValue<>(null, element != null ? element.getType() : null, e);
 		}
@@ -254,8 +256,9 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 		ConfigElement element = null;
 		try {
 			element = this.data.get(index);
-			V value = transformer != null ? transformer.transform(element) : null;
-			return new ConfigValue<>(value, element.getType(), null);
+			Type type = element.getType();
+			V value = transformer != null ? transformer.transform(element, type) : null;
+			return new ConfigValue<>(value, type, null);
 		} catch (ConfigError e) {
 			return new ConfigValue<>(null, element != null ? element.getType() : null, e);
 		}
@@ -270,53 +273,53 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	
 	@Override
 	public ConfigValue<Self> getAny(String name) {
-		return this.get(name, element -> this.newSubConfig(element));
+		return this.get(name, (element, type) -> this.newSubConfig(element));
 	}
 	
 	@Override
 	public ConfigValue<Self> getAny(int index) {
-		return this.get(index, element -> this.newSubConfig(element));
+		return this.get(index, (element, type) -> this.newSubConfig(element));
 	}
 	
 	
 	@Override
 	public ConfigValue<Self> getObject() {
-		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
+		return this.get((element, type) -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
 	@Override
 	public ConfigValue<Self> getObject(String name) {
-		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
+		return this.get(name, (element, type) -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
 	@Override
 	public ConfigValue<Self> getObject(int index) {
-		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
+		return this.get(index, (element, type) -> this.newSubConfig(this.typeCheck(element, Type.OBJECT)));
 	}
 	
 	
 	@Override
 	public ConfigValue<Self> getList() {
-		return this.get(element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
+		return this.get((element, type) -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
 	@Override
 	public ConfigValue<Self> getList(String name) {
-		return this.get(name, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
+		return this.get(name, (element, type) -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
 	@Override
 	public ConfigValue<Self> getList(int index) {
-		return this.get(index, element -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
+		return this.get(index, (element, type) -> this.newSubConfig(this.typeCheck(element, Type.LIST)));
 	}
 	
 	
 	
 	
 	private <V> ConfigTransformer<Self, List<V>> transformerGetListOf(ConfigElementTransformer<V> transformer) {
-		return (element, config) -> {
-			this.typeCheck(element, Type.LIST);
-			return config.stream().map(c -> transformer.transform(c.getData()))
+		return config -> {
+			this.typeCheck(config.getData(), Type.LIST);
+			return config.stream().map(c -> transformer.transform(c.getData(), c.getData().getType()))
 					.collect(Collectors.toList());
 		};
 	}
@@ -353,12 +356,12 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	
 	
 	private <V> ConfigTransformer<Self, List<V>> transformerGetOneOrMany(ConfigElementTransformer<V> transformer) {
-		return (element, config) -> {
+		return config -> {
 			if (config.getType() == Type.LIST) {
-				return config.stream().map(c -> transformer.transform(c.getData()))
+				return config.stream().map(c -> transformer.transform(c.getData(), c.getData().getType()))
 						.collect(Collectors.toList());
 			}
-			return Collections.singletonList(transformer.transform(element));
+			return Collections.singletonList(transformer.transform(config.getData(), config.getData().getType()));
 		};
 	}
 	

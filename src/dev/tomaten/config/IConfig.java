@@ -297,7 +297,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<String> getString() {
-		return this.get(ConfigElement::getString);
+		return this.get((e, t) -> e.getString());
 	}
 	
 	/**
@@ -308,7 +308,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<String> getString(String name) {
-		return this.get(name, ConfigElement::getString);
+		return this.get(name, (e, t) -> e.getString());
 	}
 	
 	/**
@@ -319,7 +319,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public  default ConfigValue<String> getString(int index) {
-		return this.get(index, ConfigElement::getString);
+		return this.get(index, (e, t) -> e.getString());
 	}
 	
 	
@@ -330,7 +330,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Long> getLong() {
-		return this.get(ConfigElement::getLong);
+		return this.get((e, t) -> e.getLong());
 	}
 	
 	/**
@@ -341,7 +341,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Long> getLong(String name) {
-		return this.get(name, ConfigElement::getLong);
+		return this.get(name, (e, t) -> e.getLong());
 	}
 	
 	/**
@@ -352,7 +352,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Long> getLong(int index) {
-		return this.get(index, ConfigElement::getLong);
+		return this.get(index, (e, t) -> e.getLong());
 	}
 	
 	
@@ -363,7 +363,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Integer> getInt() {
-		return this.get(ConfigElement::getInt);
+		return this.get((e, t) -> e.getInt());
 	}
 	
 	/**
@@ -374,7 +374,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Integer> getInt(String name) {
-		return this.get(name, ConfigElement::getInt);
+		return this.get(name, (e, t) -> e.getInt());
 	}
 	
 	/**
@@ -385,7 +385,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Integer> getInt(int index) {
-		return this.get(index, ConfigElement::getInt);
+		return this.get(index, (e, t) -> e.getInt());
 	}
 	
 	
@@ -396,7 +396,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Double> getDouble() {
-		return this.get(ConfigElement::getDouble);
+		return this.get((e, t) -> e.getDouble());
 	}
 	
 	/**
@@ -407,7 +407,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Double> getDouble(String name) {
-		return this.get(name, ConfigElement::getDouble);
+		return this.get(name, (e, t) -> e.getDouble());
 	}
 	
 	/**
@@ -418,7 +418,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Double> getDouble(int index) {
-		return this.get(index, ConfigElement::getDouble);
+		return this.get(index, (e, t) -> e.getDouble());
 	}
 	
 	
@@ -429,7 +429,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Boolean> getBoolean() {
-		return this.get(ConfigElement::getBoolean);
+		return this.get((e, t) -> e.getBoolean());
 	}
 	
 	/**
@@ -440,7 +440,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Boolean> getBoolean(String name) {
-		return this.get(name, ConfigElement::getBoolean);
+		return this.get(name, (e, t) -> e.getBoolean());
 	}
 	
 	/**
@@ -451,7 +451,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * @return The ConfigValue. Not null.
 	 */
 	public default ConfigValue<Boolean> getBoolean(int index) {
-		return this.get(index, ConfigElement::getBoolean);
+		return this.get(index, (e, t) -> e.getBoolean());
 	}
 	
 	
@@ -462,7 +462,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * The string representation must match the format specified by {@link DateTimeFormatter#ISO_DATE_TIME}.
 	 * If the date-time has no zone or offset specified, the system default zone will be used.
 	 */
-	public static final ConfigElementTransformer<ZonedDateTime> TRANSFORMER_DATE_TIME = element -> {
+	public static final ConfigElementTransformer<ZonedDateTime> TRANSFORMER_DATE_TIME = (element, type) -> {
 		String str = element.getString();
 		try {
 			TemporalAccessor temp = DateTimeFormatter.ISO_DATE_TIME.parse(str);
@@ -529,7 +529,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * <p>
 	 * The string representation must match the format specified by {@link DateTimeFormatter#ISO_LOCAL_DATE}.
 	 */
-	public static final ConfigElementTransformer<LocalDate> TRANSFORMER_LOCAL_DATE = element -> {
+	public static final ConfigElementTransformer<LocalDate> TRANSFORMER_LOCAL_DATE = (element, type) -> {
 		String str = element.getString();
 		try {
 			return DateTimeFormatter.ISO_LOCAL_DATE.parse(str, LocalDate::from);
@@ -580,7 +580,7 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	 * <p>
 	 * The string representation must match the format specified by {@link DateTimeFormatter#ISO_LOCAL_TIME}.
 	 */
-	public static final ConfigElementTransformer<LocalTime> TRANSFORMER_LOCAL_TIME = element -> {
+	public static final ConfigElementTransformer<LocalTime> TRANSFORMER_LOCAL_TIME = (element, type) -> {
 		String str = element.getString();
 		try {
 			return DateTimeFormatter.ISO_LOCAL_TIME.parse(str, LocalTime::from);
