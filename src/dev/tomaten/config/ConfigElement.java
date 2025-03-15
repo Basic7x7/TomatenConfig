@@ -11,7 +11,7 @@ import dev.tomaten.json.generic.JSONElement;
  * <p>
  * Every {@link IConfig} is based on a ConfigElement and provides an extended API to interact with it.
  * 
- * @version 2025-03-25 last modified
+ * @version 2025-03-15 last modified
  * @version 2025-02-15 created
  * @since 1.0
  */
@@ -107,7 +107,7 @@ public abstract class ConfigElement {
 	 * @throws ConfigError If this element cannot be represented as a double.
 	 */
 	public double getDouble() throws ConfigError {
-		throw new ConfigError(this.typeErrorMessage(Type.DOUBLE));
+		throw new ConfigError(this.typeErrorMessage(Type.FLOAT));
 	}
 	
 	/**
@@ -288,7 +288,7 @@ public abstract class ConfigElement {
 		/**
 		 * A 64-bit floating-point number.
 		 */
-		DOUBLE,
+		FLOAT,
 		
 		/**
 		 * A 64-bit integer.

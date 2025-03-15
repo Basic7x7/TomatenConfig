@@ -3,17 +3,17 @@ package dev.tomaten.config;
 import dev.tomaten.json.generic.JSONElement;
 import dev.tomaten.json.generic.JSONNumber;
 
-class ConfigDouble extends ConfigElement {
+class ConfigFloat extends ConfigElement {
 	private final double value;
 	
-	public ConfigDouble(String name, String fullName, double value, String originalType) {
+	public ConfigFloat(String name, String fullName, double value, String originalType) {
 		super(name, fullName, originalType);
 		this.value = value;
 	}
 	
 	@Override
 	public Type getType() {
-		return Type.DOUBLE;
+		return Type.FLOAT;
 	}
 	
 	@Override

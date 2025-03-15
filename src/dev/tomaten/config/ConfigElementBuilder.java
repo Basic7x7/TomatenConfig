@@ -98,7 +98,7 @@ abstract class ConfigElementBuilder {
 		return new ConfigElementBuilder(parent, key) {
 			@Override
 			public ConfigElement toElement() {
-				return new ConfigDouble(this.getKey(), this.getFullKey(), value, this.getOriginalType());
+				return new ConfigFloat(this.getKey(), this.getFullKey(), value, this.getOriginalType());
 			}
 		};
 	}

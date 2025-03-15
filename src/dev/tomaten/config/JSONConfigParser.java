@@ -42,7 +42,7 @@ class JSONConfigParser {
 					// If the number could not be parsed as long, try to parse it as double.
 					try {
 						double doubleValue = Double.parseDouble(numberStr);
-						return new ConfigDouble(name, fullName, doubleValue, "number");
+						return new ConfigFloat(name, fullName, doubleValue, "number");
 					} catch (NumberFormatException e) {
 						throw new ConfigError("Could not parse JSON number" + (fullName.isEmpty() ? "" : " for '" + fullName + "'"), e);
 					}

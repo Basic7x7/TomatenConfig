@@ -52,7 +52,7 @@ class ConfigString extends ConfigElement {
 		try {
 			return Double.parseDouble(this.value);
 		} catch (NumberFormatException e) {
-			throw new ConfigError(typeErrorMessage(Type.DOUBLE), e);
+			throw new ConfigError(typeErrorMessage(Type.FLOAT), e);
 		}
 	}
 	
