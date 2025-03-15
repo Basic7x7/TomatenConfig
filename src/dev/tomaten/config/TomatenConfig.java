@@ -5,6 +5,7 @@ import static de.tomatengames.util.RequirementUtil.requireNotNull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -141,6 +142,26 @@ public class TomatenConfig {
 		
 		config.init(configFactory, rootElement);
 		return config;
+	}
+	
+	
+	/**
+	 * Reads a configuration from the specified input string.
+	 * The {@link ConfigType} determines which parser should be used.
+	 * @param <C> The type of the configuration to read.
+	 * @param configFactory A factory that creates an uninitialized instance of the configuration to read. Not null. For example, {@code Config::new}.
+	 * @param input The string to read the configuration from. Not null.
+	 * @param type The {@link ConfigType} that determines which parser should be used. Not null.
+	 * @return The configuration that was read. Not null.
+	 * @throws ConfigError If the configuration could not be parsed.
+	 * This may also wrap an {@link IOException}.
+	 */
+	public static <C extends AbstractConfig<C>> C load(Supplier<C> configFactory, String input, ConfigType type) throws ConfigError {
+		try (Reader reader = new StringReader(input)) {
+			return load(configFactory, reader, null, type);
+		} catch (IOException e) {
+			throw new ConfigError("Failed to read the config string", e);
+		}
 	}
 	
 	
