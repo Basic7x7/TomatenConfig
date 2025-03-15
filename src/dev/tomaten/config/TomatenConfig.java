@@ -8,6 +8,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.function.Supplier;
 
 import de.tomatengames.lib.compiler.CompilerException;
@@ -17,7 +18,7 @@ import de.tomatengames.lib.compiler.CompilerException;
  * <p>
  * This class provides methods to load configurations from files and other sources.
  * 
- * @version 2025-03-04 last modified
+ * @version 2025-03-15 last modified
  * @version 2025-02-15 created
  * @since 1.0
  */
@@ -138,6 +139,23 @@ public class TomatenConfig {
 			throw new ConfigError("The config factory returned null");
 		}
 		
+		config.init(configFactory, rootElement);
+		return config;
+	}
+	
+	
+	/**
+	 * Creates a configuration that consists of a single root object that has no entries.
+	 * @param <C> The type of the configuration.
+	 * @param configFactory A factory that creates an uninitialized instance of the configuration. Not null. For example, {@code Config::new}.
+	 * @return The configuration that was created. Not null.
+	 */
+	public static <C extends AbstractConfig<C>> C loadEmpty(Supplier<C> configFactory) {
+		requireNotNull(configFactory, "The config factory ...");
+		C config = configFactory.get();
+		requireNotNull(config, "The config factory returned null");
+		
+		ConfigObject rootElement = new ConfigObject("root", "", Collections.emptyMap(), null);
 		config.init(configFactory, rootElement);
 		return config;
 	}
