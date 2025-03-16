@@ -58,10 +58,10 @@ class JSONConfigTest {
 		assertFalse(it.hasNext());
 		
 		Linked<String> marker = new Linked<>(null);
-		database.getString("name").ifPresent(name -> marker.set(name));
+		database.getString("name").ifAvailable(name -> marker.set(name));
 		assertEquals("test_db", marker.get());
 		
-		database.getString("abc").ifPresent(abc -> fail());
+		database.getString("abc").ifAvailable(abc -> fail());
 		
 		assertEquals(7, database.getString("name").map(name -> name.length()).orError());
 	}
