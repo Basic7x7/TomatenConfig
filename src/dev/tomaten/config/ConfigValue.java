@@ -74,23 +74,72 @@ public class ConfigValue<V> {
 	/**
 	 * Returns the value of this configuration value if it is available.
 	 * If the value is not available, returns the provided default value.
+	 * <p>
+	 * In most cases, the {@link #orDefault(Object)} method should be used instead of this one,
+	 * since this method will silently ignore errors caused by a faulty configuration.
 	 * @param defaultValue The default value to return if the configuration value is not available. May be null.
 	 * @return The value of this configuration value if it is available; otherwise the provided default value.
 	 * Only null if the default value is null and the configuration value is not available.
 	 * @see #available()
+	 * @see #orDefault(Object)
 	 */
-	public V orDefault(V defaultValue) {
+	public V orDefaultIgnoreError(V defaultValue) {
 		return value != null ? value : defaultValue;
 	}
 	
 	/**
 	 * Returns the value of this configuration value if it is available.
+	 * If the value exists but is not available, a {@link ConfigError} is thrown.
+	 * If the value does not exist, the provided default value is returned.
+	 * <p>
+	 * Note: If the value exists but is not available, this indicates a faulty configuration in most cases.
+	 * This method should be favorized over {@link #orDefaultIgnoreError(Object)}, which silently ignores such errors.
+	 * @param defaultValue The default value to return if the configuration value is not available and does not exist. May be null.
+	 * @return The value of this configuration value if it is available; otherwise the provided default value.
+	 * @throws ConfigError If the configuration value exists but is not available.
+	 * @see #available()
+	 * @see #orDefaultIgnoreError(Object)
+	 */
+	public V orDefault(V defaultValue) throws ConfigError {
+		if (value != null) { // if available()
+			return value;
+		}
+		// Error if the value exists, but is not available.
+		// This indicates a processing error (e.g. an unexpected value type).
+		if (this.exists()) {
+			throw new ConfigError(error != null ? error.getMessage() : null, error);
+		}
+		return defaultValue;
+	}
+	
+	/**
+	 * Returns the value of this configuration value if it is available.
 	 * If the value is not available, returns {@code null}.
+	 * <p>
+	 * In most cases, the {@link #orNull()} method should be used instead of this one,
+	 * since this method will silently ignore errors caused by a faulty configuration.
 	 * @return The value of this configuration value if it is available; otherwise {@code null}.
 	 * @see #available()
+	 * @see #orNull()
 	 */
-	public V orNull() {
+	public V orNullIgnoreError() {
 		return value;
+	}
+	
+	/**
+	 * Returns the value of this configuration value if it is available.
+	 * If the value exists but is not available, a {@link ConfigError} is thrown.
+	 * If the value does not exist, {@code null} is returned.
+	 * <p>
+	 * Note: If the value exists but is not available, this indicates a faulty configuration in most cases.
+	 * This method should be favorized over {@link #orNullIgnoreError()}, which silently ignores such errors.
+	 * @return The value of this configuration value if it is available; otherwise {@code null}.
+	 * @throws ConfigError If the configuration value exists but is not available.
+	 * @see #available()
+	 * @see #orNullIgnoreError()
+	 */
+	public V orNull() throws ConfigError {
+		return this.orDefault(null);
 	}
 	
 	/**

@@ -157,8 +157,9 @@ class TOMLConfigTest {
 		assertEquals("value2", table.getString("key2").orDefault(null));
 		assertEquals(null, table.getString("key5").orNull());
 		assertEquals("value1", table.getString("key1").orNull());
-		assertEquals(null, table.getInt("key1").orNull());
-		assertEquals(12, table.getInt("key1").orDefault(12));
+		assertThrows(ConfigError.class, () -> table.getInt("key1").orNull());
+		assertThrows(ConfigError.class, () -> table.getInt("key1").orDefault(12));
+		assertEquals(12, table.getInt("key5").orDefault(12));
 	}
 	
 	@Test
