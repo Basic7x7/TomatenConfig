@@ -189,6 +189,17 @@ public abstract class AbstractConfig<Self extends AbstractConfig<Self>> implemen
 	}
 	
 	
+	@Override
+	public boolean exists(String name) {
+		return this.navigate(name, true, true) != null; // no throw error, may be null, interpret dots
+	}
+	
+	@Override
+	public boolean exists(int index) {
+		return this.data.getOrNull(index) != null;
+	}
+	
+	
 	private <V> ConfigElementTransformer<V> configTransformerWrapper(ConfigTransformer<? super Self, V> transformer) {
 		if (transformer == null) {
 			return null;

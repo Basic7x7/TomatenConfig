@@ -18,6 +18,7 @@ class GeneralTest {
 		Config config = TomatenConfig.loadEmpty(Config::new);
 		assertEquals(Type.OBJECT, config.getType());
 		assertEquals(null, config.getString("a").orNull());
+		assertEquals(false, config.exists("b"));
 		assertEquals(0, config.streamObjectEntries().count());
 	}
 	

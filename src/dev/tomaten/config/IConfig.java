@@ -99,6 +99,20 @@ public interface IConfig<Self extends IConfig<?>> extends Iterable<Self> {
 	public int size();
 	
 	
+	/**
+	 * Navigates to the given name and returns if that element exists in this config.
+	 * @param name The name of the element to check for existence. Not null. Dots {@code '.'} are used as separator to navigate through nested elements.
+	 * @return true if the element exists in this config; false otherwise.
+	 */
+	public boolean exists(String name);
+	
+	/**
+	 * Returns if the element at the specified index exists in this config.
+	 * The element does not exist if the index is out of bounds.
+	 * @param index The index of the element to check for existence.
+	 * @return true if the element at the specified index exists in this config; false otherwise.
+	 */
+	public boolean exists(int index);
 	
 	
 	/**
