@@ -3,11 +3,15 @@ package dev.tomaten.config.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
 import dev.tomaten.config.Config;
 import dev.tomaten.config.ConfigElement.Type;
+import dev.tomaten.config.ConfigError;
 import dev.tomaten.config.ConfigType;
 import dev.tomaten.config.TomatenConfig;
 
@@ -74,6 +78,24 @@ class GeneralTest {
 		assertFalse(e.equals(f));
 		assertTrue(e.equals(g));
 		assertEquals(e.hashCode(), g.hashCode());
+	}
+	
+	
+	@Test
+	public void testFindConfigJSON() {
+		Config config = TomatenConfig.load(Config::new, Paths.get("testdata/general"), "test");
+		assertEquals(42, config.getInt("a").orError());
+	}
+	
+	@Test
+	public void testFindConfigTOML() {
+		Config config = TomatenConfig.load(Config::new, Paths.get("testdata/general"), "test2");
+		assertEquals(7, config.getInt("x").orError());
+	}
+	
+	@Test
+	public void testFindConfigAmbigous() {
+		assertThrows(ConfigError.class, () -> TomatenConfig.load(Config::new, Paths.get("testdata/general"), "ambigous"));
 	}
 	
 }
