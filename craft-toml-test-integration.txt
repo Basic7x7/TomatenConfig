@@ -7,4 +7,6 @@ include "../TomatenUtil/"
 + src
 junit dev/tomaten/config/test
 
+license LICENSE
+
 manifest Main-Class "dev.tomaten.config.testtoml.TOMLTestIntegration"

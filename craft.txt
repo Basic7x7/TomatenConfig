@@ -7,3 +7,5 @@ depend "../TomatenUtil/"
 + src
 junit dev/tomaten/config/test
 - dev/tomaten/config/testtoml
+
+license LICENSE
