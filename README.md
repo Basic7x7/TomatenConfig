@@ -44,7 +44,7 @@ double dbTimeout = database.getDouble("timeout").orDefault(5.0);
 boolean cache = config.getBoolean("settings.cache").orDefault(false);
 ```
 
-For more information, see the [Docs](https://docs.tomaten.dev/software/tomatenconfig/) and the [JavaDoc](https://docs.tomaten.dev/javadoc/TomatenConfig/).
+For more information, see the [JavaDoc](https://docs.tomaten.dev/javadoc/TomatenConfig/).
 
 ## Parser Notes
 
@@ -55,7 +55,7 @@ For more information, see the [Docs](https://docs.tomaten.dev/software/tomatenco
 
 You can install TomatenConfig using the [TomatenPack](https://gitlab.tomaten.dev/Basic7x7/tomatenpack) package.
 
-```sh
+```
 tomatenpack install TomatenConfig
 ```
 
@@ -70,3 +70,11 @@ Java 8+ is required.
 | [CompilerLib](https://gitlab.tomaten.dev/Basic7x7/compilerlib) | 1.4.4 | yes |
 | [TomatenJSON](https://gitlab.tomaten.dev/Lukas/tomatenjson) | 1.5 | yes |
 | [TomatenUtil](https://gitlab.tomaten.dev/Basic7x7/tomatenutil) | 1.7 | yes |
+
+## Links
+
+Documentation: [JavaDoc](https://docs.tomaten.dev/javadoc/TomatenConfig/)
+
+If you have questions or other requests, feel free to open an issue at the [GitHub mirror](https://github.com/Basic7x7/TomatenConfig) of this repository.
+
+For more information and contact: [tomaten.dev](https://tomaten.dev/)
