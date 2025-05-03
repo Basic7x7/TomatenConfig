@@ -37,7 +37,7 @@ public class TomatenConfig {
 	 * @return The version string. Not null.
 	 */
 	public static String getVersion() {
-		return "1.0-dev";
+		return "1.0";
 	}
 	
 	
